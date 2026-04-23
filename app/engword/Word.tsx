@@ -93,12 +93,16 @@ export default function Word({ word: w }: { word: any }) {
                 </div>
             </div>
             <div className="pl-8">{isShow ? <p className={`text-base font-medium ${isDone ? "text-zinc-400" : "text-zinc-700 dark:text-zinc-300"}`}>{word.kor}</p> : <p className="text-zinc-300 dark:text-zinc-700 text-sm italic select-none">뜻이 숨겨져 있습니다.</p>}</div>
-            <div className="pl-8 mt-4">
-                <p className="text-pink-800 dark:text-pink-100">✅ 예문</p>
-            </div>
-            <div className="pl-8 mt-4">
-                <p className="text-zinc-700 dark:text-zinc-300">{word.example}</p>
-            </div>
+            {word.example && (
+                <>
+                    <div className="pl-8 mt-4">
+                        <p className="text-pink-800 dark:text-pink-100">✅ 예문</p>
+                    </div>
+                    <div className="pl-8 mt-4">
+                        <p className="text-zinc-700 dark:text-zinc-300">{word.example}</p>
+                    </div>
+                </>
+            )}
         </div>
     );
 }
