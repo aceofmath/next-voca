@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { MobileMenu } from "@/components/mobile-menu"; // Import the new MobileMenu component
+import { ThemeToggle } from "@/components/theme-toggle"; // Import the new ThemeToggle component
+import { Toaster } from "@/components/ui/sonner";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -32,16 +35,18 @@ export default function RootLayout({
         <html lang="en" className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, inter.variable)} suppressHydrationWarning>
             <body className="min-h-full flex flex-col bg-white dark:bg-black font-sans">
                 {/* 헤더: CI, 메뉴, 로그인 버튼 */}
-                <header className="flex items-center h-16 px-8 border-b border-zinc-200 dark:border-zinc-800">
+                <header className="flex items-center h-16 px-4 md:px-8 border-b border-zinc-200 dark:border-zinc-800">
                     {/* 왼쪽: CI (Logo) */}
                     <div className="flex-1 flex justify-start">
-                        <Link href="/">
+                        <Link href="/" className="flex items-center">
+                            {" "}
+                            {/* Added flex items-center for better alignment */}
                             <Image className="dark:invert" src="/next.svg" alt="Next.js logo" width={100} height={20} priority />
                         </Link>
                     </div>
 
                     {/* 가운데: 메뉴들 */}
-                    <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-zinc-600 dark:text-zinc-400">
+                    <nav className="hidden md:flex items-center gap-4 md:gap-8 text-xs md:text-sm font-medium text-zinc-600 dark:text-zinc-400">
                         <Link href="/about" className="hover:text-black dark:hover:text-white transition-colors">
                             ABOUT
                         </Link>
@@ -54,10 +59,18 @@ export default function RootLayout({
                     </nav>
 
                     {/* 오른쪽: 로그인 버튼 */}
-                    <div className="flex-1 flex justify-end">
+                    <div className="hidden md:flex flex-1 justify-end items-center gap-2">
+                        {" "}
+                        {/* Added items-center and gap-2 for spacing */}
+                        <ThemeToggle /> {/* Dark mode toggle button */}
                         <Button variant="default" size="sm">
                             로그인
                         </Button>
+                    </div>
+
+                    {/* 모바일 메뉴 (MenuBar 통합) */}
+                    <div className="flex md:hidden flex-1 justify-end">
+                        <MobileMenu />
                     </div>
                 </header>
 
@@ -67,6 +80,7 @@ export default function RootLayout({
                 <footer className="py-8 px-8 border-t border-zinc-200 dark:border-zinc-800 text-center text-sm text-zinc-500">
                     <p>© 2024 Your Project. All rights reserved.</p>
                 </footer>
+                <Toaster position="top-center" richColors />
             </body>
         </html>
     );

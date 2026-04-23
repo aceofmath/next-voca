@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { toast } from "sonner";
 
 export default function CreateDay() {
     const [days, setDays] = useState<any[]>([]);
@@ -30,11 +31,11 @@ export default function CreateDay() {
         const { error } = await supabase.from("days").insert([{ day: days.length + 1 }]);
 
         if (error) {
-            alert("생성 중 오류가 발생했습니다.");
+            toast.error("생성 중 오류가 발생했습니다.");
             console.error(error);
             setIsLoading(false);
         } else {
-            alert("생성이 완료 되었습니다.");
+            toast.success("생성이 완료 되었습니다.");
             // 생성 후 목록 페이지로 이동하며 데이터를 갱신합니다.
             router.push("/engword");
             router.refresh();

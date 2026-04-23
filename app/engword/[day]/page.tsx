@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Word from "../Word"; // Word 컴포넌트 경로 수정
 
@@ -29,35 +30,26 @@ export default function Day() {
     }, [day]);
 
     if (loading) {
-        return <main className="flex-1 flex items-center justify-center text-zinc-500">Loading...</main>;
+        return (
+            <main className="flex-1 flex flex-col items-center justify-center py-20 w-full text-zinc-500">
+                <Loader2 className="h-10 w-10 animate-spin mb-4" />
+                <p className="text-sm font-medium animate-pulse">단어 목록을 불러오는 중입니다...</p>
+            </main>
+        );
     }
 
     return (
         <div className="w-full">
             <div className="flex justify-between items-center mb-8">
-                <h2 className="text-3xl font-bold text-black dark:text-white">Day {day}</h2>
-                <Button asChild variant="ghost" size="sm">
-                    <Link href="/engword">← 목록으로 돌아가기</Link>
-                </Button>
+                <h2 className="text-3xl font-bold text-black dark:text-white">✏️ Day {day}</h2>
             </div>
 
-            <div className="w-full overflow-x-auto border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm">
-                <table className="w-full text-left border-collapse min-w-[600px] md:min-w-full">
-                    <thead className="bg-zinc-50 dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-800">
-                        <tr>
-                            <th className="px-3 py-3 md:px-6 md:py-4 text-sm font-semibold text-zinc-500 w-16">상태</th>
-                            <th className="px-3 py-3 md:px-6 md:py-4 text-sm font-semibold text-zinc-500">단어 (English)</th>
-                            <th className="px-3 py-3 md:px-6 md:py-4 text-sm font-semibold text-zinc-500">뜻 (Korean)</th>
-                            <th className="px-3 py-3 md:px-6 md:py-4 text-sm font-semibold text-zinc-500 text-right">관리</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-zinc-100 dark:divide-zinc-900">
-                        {words.map((word) => (
-                            <Word word={word} key={word.id} />
-                        ))}
-                    </tbody>
-                </table>
+            <div className="flex flex-col gap-4">
+                {words.map((word) => (
+                    <Word word={word} key={word.id} />
+                ))}
             </div>
+
             {words.length === 0 && <p className="text-center py-12 text-zinc-500 italic">등록된 단어가 없습니다.</p>}
         </div>
     );

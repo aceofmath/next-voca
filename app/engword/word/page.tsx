@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 export default function CreateWord() {
     const [days, setDays] = useState<any[]>([]);
@@ -45,9 +46,9 @@ export default function CreateWord() {
 
             if (error) {
                 console.error("Supabase Insert Error:", error);
-                alert("저장 중 오류가 발생했습니다.");
+                toast.error("저장 중 오류가 발생했습니다.");
             } else {
-                alert("생성이 완료 되었습니다.");
+                toast.success("생성이 완료 되었습니다.");
                 // 생성 후 해당 Day의 단어 목록 페이지로 이동합니다.
                 router.push(`/engword/${dayRef.current.value}`);
                 router.refresh();
