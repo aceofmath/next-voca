@@ -36,7 +36,7 @@ export default function NoticePage() {
                                 <TableRow key={notice.id}>
                                     <TableCell className="font-medium">{notice.id}</TableCell>
                                     <TableCell>{notice.title}</TableCell>
-                                    <TableCell className="text-right">{notice.view}</TableCell>
+                                    <TableCell className="text-right">{notice.type}</TableCell>
                                     <TableCell className="text-right">{notice.date}</TableCell>
                                 </TableRow>
                             ))}
