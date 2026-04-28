@@ -5,7 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import noticeData from "../data.json";
 
 interface Notice {
-    id: string;
+    id: number;
     title: string;
     type: string;
     date: string;
