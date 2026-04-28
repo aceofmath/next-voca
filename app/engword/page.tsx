@@ -27,10 +27,10 @@ export default function DayList() {
 
     if (loading) {
         return (
-            <main className="flex-1 flex flex-col items-center justify-center py-20 w-full text-zinc-500">
+            <div className="flex-1 flex flex-col items-center justify-center py-20 w-full text-zinc-500">
                 <Loader2 className="h-10 w-10 animate-spin mb-4" />
                 <p className="text-sm font-medium animate-pulse">데이터를 불러오는 중입니다...</p>
-            </main>
+            </div>
         );
     }
 

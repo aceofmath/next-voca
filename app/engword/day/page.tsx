@@ -10,6 +10,7 @@ import { toast } from "sonner";
 export default function CreateDay() {
     const [days, setDays] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [user, setUser] = useState<any>(null);
     const router = useRouter();
 
     useEffect(() => {
@@ -21,10 +22,26 @@ export default function CreateDay() {
             }
         };
         fetchDays();
+
+        const checkUser = async () => {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        checkUser();
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     async function addDay() {
-        if (isLoading) return;
+        if (isLoading || !user) return;
         setIsLoading(true);
 
         // 새로운 Day 번호는 현재 개수 + 1로 설정합니다.
@@ -51,9 +68,10 @@ export default function CreateDay() {
                         현재 등록된 일수 : <span className="font-bold text-black dark:text-white">{days.length}일</span>
                     </h4>
                 </div>
-                <Button className="w-full h-14 text-lg font-bold shadow-sm" onClick={addDay} disabled={isLoading}>
-                    {isLoading ? "생성 중..." : "새로운 Day 추가하기"}
+                <Button className="w-full h-14 text-lg font-bold shadow-sm" onClick={addDay} disabled={isLoading || !user}>
+                    {!user ? "로그인이 필요합니다" : isLoading ? "생성 중..." : "새로운 Day 추가하기"}
                 </Button>
+                {!user && <p className="text-sm text-amber-500 text-center mt-2">Day를 추가하려면 로그인이 필요합니다.</p>}
             </div>
         </>
     );

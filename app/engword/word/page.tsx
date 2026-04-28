@@ -11,6 +11,7 @@ import { toast } from "sonner";
 export default function CreateWord() {
     const [days, setDays] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [user, setUser] = useState<any>(null);
     const router = useRouter();
 
     const engRef = useRef<HTMLInputElement>(null);
@@ -27,10 +28,31 @@ export default function CreateWord() {
             }
         };
         fetchDays();
+
+        const checkUser = async () => {
+            const {
+                data: { user },
+            } = await supabase.auth.getUser();
+            setUser(user);
+        };
+        checkUser();
+
+        const {
+            data: { subscription },
+        } = supabase.auth.onAuthStateChange((_event, session) => {
+            setUser(session?.user ?? null);
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     async function onSubmit(e: React.FormEvent) {
         e.preventDefault();
+
+        if (!user) {
+            toast.error("로그인이 필요합니다.");
+            return;
+        }
 
         if (!isLoading && engRef.current && korRef.current && dayRef.current) {
             setIsLoading(true);
@@ -89,11 +111,12 @@ export default function CreateWord() {
                             </select>
                         </div>
 
-                        <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={isLoading || days.length === 0}>
-                            {isLoading ? "저장 중..." : "단어 저장하기"}
+                        <Button type="submit" className="w-full h-12 text-base font-semibold" disabled={isLoading || days.length === 0 || !user}>
+                            {!user ? "로그인이 필요합니다" : isLoading ? "저장 중..." : "단어 저장하기"}
                         </Button>
 
                         {days.length === 0 && <p className="text-sm text-red-500 text-center mt-2">등록된 Day가 없습니다. 먼저 Day를 추가해 주세요.</p>}
+                        {!user && <p className="text-sm text-amber-500 text-center mt-2">단어를 저장하려면 로그인이 필요합니다.</p>}
                     </form>
                 </div>
             </main>

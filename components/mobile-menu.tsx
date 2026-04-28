@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
+import { AuthStatus } from "./auth-status";
 
 export function MobileMenu() {
     return (
@@ -36,9 +37,7 @@ export function MobileMenu() {
                         <span className="text-sm font-medium text-zinc-600 dark:text-zinc-400">테마 설정</span>
                         <ThemeToggle />
                     </div>
-                    <Button variant="default" className="w-full h-12 text-base font-semibold">
-                        로그인
-                    </Button>
+                    <AuthStatus isMobile />
                 </div>
             </SheetContent>
         </Sheet>

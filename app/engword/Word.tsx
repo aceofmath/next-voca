@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -51,6 +51,16 @@ export default function Word({ word: w }: { word: any }) {
         }
     }, [word.eng]);
 
+    // 모든 단어의 뜻 보기/숨기기 상태를 변경하는 전역 이벤트 리스너 추가
+    useEffect(() => {
+        const handleToggleAll = (e: Event) => {
+            const customEvent = e as CustomEvent<boolean>;
+            setIsShow(customEvent.detail);
+        };
+        window.addEventListener("toggle-all-meanings", handleToggleAll);
+        return () => window.removeEventListener("toggle-all-meanings", handleToggleAll);
+    }, []);
+
     if (word.id === 0) return null;
 
     return (
@@ -73,7 +83,7 @@ export default function Word({ word: w }: { word: any }) {
                     <Button variant="outline" size="sm" onClick={toggleShow} className="h-8 px-3 text-xs md:text-sm">
                         {isShow ? "뜻 숨기기" : "뜻 보기"}
                     </Button>
-                    <AlertDialog>
+                    {/* <AlertDialog>
                         <AlertDialogTrigger asChild>
                             <Button variant="destructive" size="sm" className="h-8 px-3 text-xs md:text-sm">
                                 삭제
@@ -89,7 +99,7 @@ export default function Word({ word: w }: { word: any }) {
                                 <AlertDialogAction onClick={del}>삭제</AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
-                    </AlertDialog>
+                    </AlertDialog> */}
                 </div>
             </div>
             <div className="pl-8">{isShow ? <p className={`text-base font-medium ${isDone ? "text-zinc-400" : "text-zinc-700 dark:text-zinc-300"}`}>{word.kor}</p> : <p className="text-zinc-300 dark:text-zinc-700 text-sm italic select-none">뜻이 숨겨져 있습니다.</p>}</div>

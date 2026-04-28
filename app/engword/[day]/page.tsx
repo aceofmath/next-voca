@@ -13,6 +13,14 @@ export default function Day() {
     const day = params.day;
     const [words, setWords] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [allShown, setAllShown] = useState(false);
+
+    const toggleAllMeanings = () => {
+        const nextState = !allShown;
+        setAllShown(nextState);
+        const event = new CustomEvent("toggle-all-meanings", { detail: nextState });
+        window.dispatchEvent(event);
+    };
 
     useEffect(() => {
         const fetchWords = async () => {
@@ -40,8 +48,11 @@ export default function Day() {
 
     return (
         <div className="w-full">
-            <div className="flex justify-between items-center mb-8">
+            <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4 border-b border-zinc-100 dark:border-zinc-800 pb-6">
                 <h2 className="text-3xl font-bold text-black dark:text-white">✏️ Day {day}</h2>
+                <Button variant="outline" onClick={toggleAllMeanings} className={`w-full md:w-auto shadow-sm font-semibold ${allShown ? "text-zinc-500" : "text-blue-600 dark:text-blue-400"}`}>
+                    {allShown ? "전체 뜻 숨기기" : "전체 뜻 보기"}
+                </Button>
             </div>
 
             <div className="flex flex-col gap-4">
