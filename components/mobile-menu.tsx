@@ -33,8 +33,8 @@ export function MobileMenu() {
                             </Link>
                         </SheetClose>
                         <SheetClose asChild>
-                            <Link href="#" className="text-lg font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors mx-2">
-                                메뉴3
+                            <Link href="/notice" className="text-lg font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors mx-2">
+                                공지사항
                             </Link>
                         </SheetClose>
                     </nav>
