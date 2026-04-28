@@ -54,8 +54,8 @@ export default function RootLayout({
                         <Link href="/engword" className="hover:text-black dark:hover:text-white transition-colors">
                             영단어
                         </Link>
-                        <Link href="#" className="hover:text-black dark:hover:text-white transition-colors">
-                            메뉴3
+                        <Link href="/notice" className="hover:text-black dark:hover:text-white transition-colors">
+                            공지사항
                         </Link>
                     </nav>
 
