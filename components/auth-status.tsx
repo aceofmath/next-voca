@@ -9,18 +9,49 @@ export function AuthStatus({ isMobile = false }: { isMobile?: boolean }) {
     const [user, setUser] = useState<any>(null);
 
     useEffect(() => {
+        const syncUserProfile = async (currentUser: any) => {
+            if (!currentUser) return;
+            try {
+                const displayName = currentUser.user_metadata?.full_name 
+                    || currentUser.user_metadata?.name 
+                    || currentUser.email?.split("@")[0] 
+                    || "사용자";
+
+                // Upsert UID, Display Name, and Email into profile table
+                await supabase.from("profile").upsert(
+                    [
+                        {
+                            user_id: currentUser.id,
+                            name: displayName,
+                            Email: currentUser.email || "",
+                        },
+                    ],
+                    { onConflict: "user_id" }
+                );
+            } catch (err) {
+                console.error("Profile sync error:", err);
+            }
+        };
+
         const checkUser = async () => {
             const {
                 data: { user },
             } = await supabase.auth.getUser();
             setUser(user);
+            if (user) {
+                syncUserProfile(user);
+            }
         };
         checkUser();
 
         const {
             data: { subscription },
         } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
+            const currentUser = session?.user ?? null;
+            setUser(currentUser);
+            if (currentUser) {
+                syncUserProfile(currentUser);
+            }
         });
 
         return () => subscription.unsubscribe();
