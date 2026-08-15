@@ -57,6 +57,9 @@ export default function RootLayout({
                         <Link href="/notice" className="hover:text-black dark:hover:text-white transition-colors">
                             공지사항
                         </Link>
+                        <Link href="/todos" className="hover:text-black dark:hover:text-white transition-colors">
+                            할일
+                        </Link>
                     </nav>
 
                     {/* 오른쪽: 로그인 버튼 */}
