@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/lib/supabaseClient";
@@ -190,6 +190,12 @@ export default function TodosPage() {
             return;
         }
 
+        // 날짜만 비교 (시:분:초 제외)
+        if (startOfDay(startDate) > startOfDay(endDate)) {
+            alert("시작일이 종료일보다 클 수 없습니다.");
+            return;
+        }
+
         if (editingTodo) {
             // 수정 모드
             const updateData = {
@@ -284,14 +290,14 @@ export default function TodosPage() {
                             <CardHeader className="flex flex-col gap-4 pb-4">
                                 <div className="flex flex-wrap items-center justify-between gap-3 w-full">
                                     <CardTitle className="text-xl md:text-2xl font-bold">할 일 목록</CardTitle>
-                                    
-                                    <Button 
-                                        className="flex items-center gap-1.5 text-xs md:text-sm h-9 px-3 shrink-0" 
+
+                                    <Button
+                                        className="flex items-center gap-1.5 text-xs md:text-sm h-9 px-3 shrink-0"
                                         disabled={!user}
                                         onClick={handleOpenAddDialog}
                                         title={!user ? "로그인이 필요합니다" : "할 일 추가"}
                                     >
-                                        <Plus className="w-4 h-4" /> 
+                                        <Plus className="w-4 h-4" />
                                         {user ? "할 일 추가" : "추가 (로그인 필요)"}
                                     </Button>
                                 </div>
@@ -389,11 +395,11 @@ export default function TodosPage() {
                             <CardContent className="p-2 sm:p-6 pt-0">
                                 {filteredTodos.length === 0 ? (
                                     <div className="text-center py-12 text-muted-foreground border rounded-lg">
-                                        {filter === "all" 
-                                            ? "등록된 할 일이 없습니다." 
-                                            : filter === "in_progress" 
-                                            ? "진행 중인 할 일이 없습니다." 
-                                            : "완료된 할 일이 없습니다."}
+                                        {filter === "all"
+                                            ? "등록된 할 일이 없습니다."
+                                            : filter === "in_progress"
+                                                ? "진행 중인 할 일이 없습니다."
+                                                : "완료된 할 일이 없습니다."}
                                     </div>
                                 ) : (
                                     <>
@@ -402,11 +408,10 @@ export default function TodosPage() {
                                             {filteredTodos.map((todo) => (
                                                 <div
                                                     key={todo.id}
-                                                    className={`p-4 rounded-lg border transition-all ${
-                                                        todo.is_completed
-                                                            ? "bg-muted/40 border-zinc-200 dark:border-zinc-800"
-                                                            : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm"
-                                                    }`}
+                                                    className={`p-4 rounded-lg border transition-all ${todo.is_completed
+                                                        ? "bg-muted/40 border-zinc-200 dark:border-zinc-800"
+                                                        : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm"
+                                                        }`}
                                                 >
                                                     <div className="flex items-start justify-between gap-3 mb-2">
                                                         <div className="flex items-start gap-3 min-w-0 flex-1">
