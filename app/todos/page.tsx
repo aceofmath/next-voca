@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { format, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { supabase } from "@/lib/supabaseClient";
 import { Loader2, User, Plus, CalendarIcon, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -275,7 +274,7 @@ export default function TodosPage() {
         <>
             {/* Header section */}
             <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 md:mb-8 w-full gap-4">
-                <h1 className="text-2xl md:text-3xl font-bold text-black dark:text-white">할일 목록</h1>
+                <h1 className="text-2xl md:text-3xl font-bold text-black dark:text-white">할일 관리</h1>
             </div>
 
             {loading ? (
@@ -402,171 +401,85 @@ export default function TodosPage() {
                                                 : "완료된 할 일이 없습니다."}
                                     </div>
                                 ) : (
-                                    <>
-                                        {/* Mobile view (< md) */}
-                                        <div className="space-y-3 block md:hidden">
-                                            {filteredTodos.map((todo) => (
-                                                <div
-                                                    key={todo.id}
-                                                    className={`p-4 rounded-lg border transition-all ${todo.is_completed
-                                                        ? "bg-muted/40 border-zinc-200 dark:border-zinc-800"
-                                                        : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm"
-                                                        }`}
-                                                >
-                                                    <div className="flex items-start justify-between gap-3 mb-2">
-                                                        <div className="flex items-start gap-3 min-w-0 flex-1">
-                                                            <Checkbox
-                                                                checked={todo.is_completed}
-                                                                onCheckedChange={() => toggleComplete(todo.id, todo.is_completed)}
-                                                                className="mt-1 shrink-0"
-                                                            />
-                                                            <div className="min-w-0 flex-1">
-                                                                <div className={`font-semibold text-sm break-words ${todo.is_completed ? "line-through text-muted-foreground" : "text-zinc-900 dark:text-zinc-100"}`}>
-                                                                    {todo.title}
-                                                                </div>
-                                                                {todo.contents && (
-                                                                    <p className="text-xs text-muted-foreground mt-1 break-words line-clamp-2">
-                                                                        {todo.contents}
-                                                                    </p>
-                                                                )}
+                                    <div className="space-y-3">
+                                        {filteredTodos.map((todo) => (
+                                            <div
+                                                key={todo.id}
+                                                className={`p-4 rounded-lg border transition-all ${todo.is_completed
+                                                    ? "bg-muted/40 border-zinc-200 dark:border-zinc-800"
+                                                    : "bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 shadow-sm"
+                                                    }`}
+                                            >
+                                                <div className="flex items-start justify-between gap-3 mb-2">
+                                                    <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                        <Checkbox
+                                                            checked={todo.is_completed}
+                                                            onCheckedChange={() => toggleComplete(todo.id, todo.is_completed)}
+                                                            className="mt-1 shrink-0"
+                                                        />
+                                                        <div className="min-w-0 flex-1">
+                                                            <div className={`font-semibold text-sm break-words ${todo.is_completed ? "line-through text-muted-foreground" : "text-zinc-900 dark:text-zinc-100"}`}>
+                                                                {todo.title}
                                                             </div>
-                                                        </div>
-                                                        <div className="shrink-0">
-                                                            {todo.is_completed ? (
-                                                                <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5">
-                                                                    완료
-                                                                </Badge>
-                                                            ) : (
-                                                                <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px] px-1.5 py-0.5">
-                                                                    진행중
-                                                                </Badge>
+                                                            {todo.contents && (
+                                                                <p className="text-xs text-muted-foreground mt-1 break-words whitespace-pre-wrap">
+                                                                    {todo.contents}
+                                                                </p>
                                                             )}
                                                         </div>
                                                     </div>
-
-                                                    <div className="flex items-center justify-between text-xs text-muted-foreground pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 mt-2 gap-2">
-                                                        <div className="flex items-center gap-2.5 flex-wrap min-w-0">
-                                                            <span className="flex items-center gap-1 font-medium text-zinc-700 dark:text-zinc-300">
-                                                                <User className="w-3 h-3 text-muted-foreground shrink-0" />
-                                                                <span className="truncate max-w-[90px]">{getAuthorDisplayName(todo)}</span>
-                                                            </span>
-                                                            <span className="text-[11px] text-zinc-400">
-                                                                {todo.s_date ? format(new Date(todo.s_date), "MM-dd") : "-"} ~ {todo.e_date ? format(new Date(todo.e_date), "MM-dd") : "-"}
-                                                            </span>
-                                                        </div>
-                                                        <div className="flex items-center gap-1 shrink-0">
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
-                                                                onClick={() => handleOpenEditDialog(todo)}
-                                                                title="할 일 수정"
-                                                            >
-                                                                <Pencil className="w-3.5 h-3.5" />
-                                                            </Button>
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="icon"
-                                                                className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
-                                                                onClick={() => handleDeleteTodo(todo.id)}
-                                                                title="할 일 삭제"
-                                                            >
-                                                                <Trash2 className="w-3.5 h-3.5" />
-                                                            </Button>
-                                                        </div>
+                                                    <div className="shrink-0">
+                                                        {todo.is_completed ? (
+                                                            <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5">
+                                                                완료
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px] px-1.5 py-0.5">
+                                                                진행중
+                                                            </Badge>
+                                                        )}
                                                     </div>
                                                 </div>
-                                            ))}
-                                        </div>
 
-                                        {/* Desktop view (>= md) */}
-                                        <div className="hidden md:block rounded-md border overflow-hidden">
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow>
-                                                        <TableHead className="w-[60px] text-center">완료</TableHead>
-                                                        <TableHead>제목 / 내용</TableHead>
-                                                        <TableHead className="w-[100px]">작성자</TableHead>
-                                                        <TableHead className="w-[120px]">시작일</TableHead>
-                                                        <TableHead className="w-[120px]">종료일</TableHead>
-                                                        <TableHead className="w-[120px]">등록일</TableHead>
-                                                        <TableHead className="w-[90px] text-center">상태</TableHead>
-                                                        <TableHead className="w-[100px] text-center">관리</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {filteredTodos.map((todo) => (
-                                                        <TableRow key={todo.id} className={todo.is_completed ? "bg-muted/40" : ""}>
-                                                            <TableCell className="text-center">
-                                                                <Checkbox
-                                                                    checked={todo.is_completed}
-                                                                    onCheckedChange={() => toggleComplete(todo.id, todo.is_completed)}
-                                                                />
-                                                            </TableCell>
-                                                            <TableCell>
-                                                                <div className={`font-medium ${todo.is_completed ? "line-through text-muted-foreground" : ""}`}>
-                                                                    {todo.title}
-                                                                </div>
-                                                                {todo.contents && (
-                                                                    <div className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                                                                        {todo.contents}
-                                                                    </div>
-                                                                )}
-                                                            </TableCell>
-                                                            <TableCell className="text-sm">
-                                                                <div className="flex items-center gap-1">
-                                                                    <User className="w-3.5 h-3.5 text-muted-foreground" />
-                                                                    {getAuthorDisplayName(todo)}
-                                                                </div>
-                                                            </TableCell>
-                                                            <TableCell className="text-sm text-muted-foreground">
-                                                                {todo.s_date ? format(new Date(todo.s_date), "yyyy-MM-dd") : "-"}
-                                                            </TableCell>
-                                                            <TableCell className="text-sm text-muted-foreground">
-                                                                {todo.e_date ? format(new Date(todo.e_date), "yyyy-MM-dd") : "-"}
-                                                            </TableCell>
-                                                            <TableCell className="text-sm text-muted-foreground">
-                                                                {todo.created_at ? format(new Date(todo.created_at), "yyyy-MM-dd") : "-"}
-                                                            </TableCell>
-                                                            <TableCell className="text-center">
-                                                                {todo.is_completed ? (
-                                                                    <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
-                                                                        완료
-                                                                    </Badge>
-                                                                ) : (
-                                                                    <Badge variant="outline" className="text-amber-600 border-amber-300">
-                                                                        진행중
-                                                                    </Badge>
-                                                                )}
-                                                            </TableCell>
-                                                            <TableCell className="text-center">
-                                                                <div className="flex items-center justify-center gap-1">
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-8 w-8 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100"
-                                                                        onClick={() => handleOpenEditDialog(todo)}
-                                                                        title="할 일 수정"
-                                                                    >
-                                                                        <Pencil className="w-4 h-4" />
-                                                                    </Button>
-                                                                    <Button
-                                                                        variant="ghost"
-                                                                        size="icon"
-                                                                        className="h-8 w-8 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
-                                                                        onClick={() => handleDeleteTodo(todo.id)}
-                                                                        title="할 일 삭제"
-                                                                    >
-                                                                        <Trash2 className="w-4 h-4" />
-                                                                    </Button>
-                                                                </div>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    </>
+                                                <div className="flex items-center justify-between text-xs text-muted-foreground pt-2.5 border-t border-zinc-100 dark:border-zinc-800/80 mt-2 gap-2">
+                                                    <div className="flex items-center gap-3 flex-wrap min-w-0">
+                                                        <span className="flex items-center gap-1 font-medium text-zinc-700 dark:text-zinc-300">
+                                                            <User className="w-3 h-3 text-muted-foreground shrink-0" />
+                                                            <span className="truncate max-w-[120px]">{getAuthorDisplayName(todo)}</span>
+                                                        </span>
+                                                        <span className="text-[11px] text-zinc-400">
+                                                            기간: {todo.s_date ? format(new Date(todo.s_date), "yyyy-MM-dd") : "-"} ~ {todo.e_date ? format(new Date(todo.e_date), "yyyy-MM-dd") : "-"}
+                                                        </span>
+                                                        {todo.created_at && (
+                                                            <span className="text-[11px] text-zinc-400 hidden sm:inline">
+                                                                등록: {format(new Date(todo.created_at), "yyyy-MM-dd")}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-1 shrink-0">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7 text-zinc-600 hover:text-zinc-900 dark:text-zinc-400"
+                                                            onClick={() => handleOpenEditDialog(todo)}
+                                                            title="할 일 수정"
+                                                        >
+                                                            <Pencil className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="h-7 w-7 text-red-500 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/30"
+                                                            onClick={() => handleDeleteTodo(todo.id)}
+                                                            title="할 일 삭제"
+                                                        >
+                                                            <Trash2 className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

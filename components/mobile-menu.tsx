@@ -37,6 +37,11 @@ export function MobileMenu() {
                                 공지사항
                             </Link>
                         </SheetClose>
+                        <SheetClose asChild>
+                            <Link href="/todos" className="text-lg font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors mx-2">
+                                할일
+                            </Link>
+                        </SheetClose>
                     </nav>
                     <hr className="border-zinc-200 dark:border-zinc-800" />
                     <div className="flex items-center justify-between">
