@@ -1,9 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { supabase } from "@/lib/supabaseClient";
 import { Loader2, User, Plus, CalendarIcon, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,261 +12,38 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-
-interface Todo {
-    id: number;
-    s_date: string;
-    e_date: string;
-    title: string;
-    contents: string;
-    created_at: string;
-    user_id?: string | null;
-    is_completed: boolean;
-}
-
-type FilterType = "all" | "in_progress" | "completed";
+import { useTodos } from "@/hooks/useTodos";
 
 export default function TodosPage() {
-    // Form 및 유저 상태
-    const [user, setUser] = useState<any>(null);
-    const [todos, setTodos] = useState<Todo[]>([]);
-    const [filter, setFilter] = useState<FilterType>("all");
-    const [isDialogOpen, setIsDialogOpen] = useState(false);
-    const [editingTodo, setEditingTodo] = useState<Todo | null>(null);
-
-    const [title, setTitle] = useState("");
-    const [content, setContent] = useState("");
-    const [startDate, setStartDate] = useState<Date | undefined>(new Date());
-    const [endDate, setEndDate] = useState<Date | undefined>(new Date());
-
-    const [profileMap, setProfileMap] = useState<Record<string, string>>({});
-    const [loading, setLoading] = useState(true);
-
-    // 로그인 유저 정보 모니터링
-    useEffect(() => {
-        const checkUser = async () => {
-            const {
-                data: { user },
-            } = await supabase.auth.getUser();
-            setUser(user);
-        };
-        checkUser();
-
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-        });
-
-        return () => subscription.unsubscribe();
-    }, []);
-
-    const fetchTodos = async () => {
-        setLoading(true);
-
-        // Fetch profile data to map user_id -> profile.name
-        const { data: profileData } = await supabase.from("profile").select("user_id, name");
-        const map: Record<string, string> = {};
-        if (profileData) {
-            profileData.forEach((p) => {
-                if (p.user_id && p.name) {
-                    map[p.user_id] = p.name;
-                }
-            });
-        }
-        setProfileMap(map);
-
-        const { data, error } = await supabase
-            .from("todos")
-            .select("*")
-            .order("created_at", { ascending: false });
-
-        if (error) {
-            console.error("Error fetching todos:", error.message);
-        } else {
-            setTodos(data || []);
-        }
-
-        setLoading(false);
-    };
-
-    useEffect(() => {
-        fetchTodos();
-    }, []);
-
-    const getAuthorDisplayName = (todo: Todo) => {
-        if (!todo.user_id) return "-";
-        return profileMap[todo.user_id] || "-";
-    };
-
-    const getLoggedInUserName = () => {
-        if (!user) return "";
-        return (
-            user.user_metadata?.full_name ||
-            user.user_metadata?.name ||
-            user.email?.split("@")[0] ||
-            (user.id ? profileMap[user.id] : "") ||
-            "사용자"
-        );
-    };
-
-    // 완료 상태 토글
-    const toggleComplete = async (id: number, currentCompleted: boolean) => {
-        setTodos((prev) =>
-            prev.map((todo) =>
-                todo.id === id ? { ...todo, is_completed: !currentCompleted } : todo
-            )
-        );
-
-        const { error } = await supabase
-            .from("todos")
-            .update({ is_completed: !currentCompleted })
-            .eq("id", id);
-
-        if (error) {
-            console.error("Error updating todo completion:", error.message);
-            setTodos((prev) =>
-                prev.map((todo) =>
-                    todo.id === id ? { ...todo, is_completed: currentCompleted } : todo
-                )
-            );
-        }
-    };
-
-    // 할 일 삭제
-    const handleDeleteTodo = async (id: number) => {
-        if (!user) {
-            alert("삭제하려면 로그인이 필요합니다.");
-            return;
-        }
-
-        if (!confirm("이 할 일을 정말로 삭제하시겠습니까?")) return;
-
-        setTodos((prev) => prev.filter((t) => t.id !== id));
-
-        const { error } = await supabase
-            .from("todos")
-            .delete()
-            .eq("id", id);
-
-        if (error) {
-            console.error("Error deleting todo:", error.message);
-            alert("삭제에 실패했습니다.");
-            fetchTodos();
-        }
-    };
-
-    // 모달 열기 - 등록
-    const handleOpenAddDialog = () => {
-        if (!user) return;
-        setEditingTodo(null);
-        resetForm();
-        setIsDialogOpen(true);
-    };
-
-    // 모달 열기 - 수정
-    const handleOpenEditDialog = (todo: Todo) => {
-        if (!user) {
-            alert("수정하려면 로그인이 필요합니다.");
-            return;
-        }
-        setEditingTodo(todo);
-        setTitle(todo.title);
-        setContent(todo.contents || "");
-        setStartDate(todo.s_date ? new Date(todo.s_date) : new Date());
-        setEndDate(todo.e_date ? new Date(todo.e_date) : new Date());
-        setIsDialogOpen(true);
-    };
-
-    // 저장 (등록 / 수정 공통)
-    const handleSaveTodo = async () => {
-        if (!title || !startDate || !endDate) return;
-
-        if (!user) {
-            alert("로그인이 필요합니다.");
-            return;
-        }
-
-        // 날짜만 비교 (시:분:초 제외)
-        if (startOfDay(startDate) > startOfDay(endDate)) {
-            alert("시작일이 종료일보다 클 수 없습니다.");
-            return;
-        }
-
-        if (editingTodo) {
-            // 수정 모드
-            const updateData = {
-                title,
-                contents: content,
-                s_date: startDate.toISOString(),
-                e_date: endDate.toISOString(),
-            };
-
-            const { error } = await supabase
-                .from("todos")
-                .update(updateData)
-                .eq("id", editingTodo.id);
-
-            if (error) {
-                console.error("Error updating todo:", error.message);
-            }
-
-            setTodos((prev) =>
-                prev.map((t) => (t.id === editingTodo.id ? { ...t, ...updateData } : t))
-            );
-        } else {
-            // 등록 모드
-            const newTodoData = {
-                title,
-                contents: content,
-                s_date: startDate.toISOString(),
-                e_date: endDate.toISOString(),
-                user_id: user.id,
-                is_completed: false,
-            };
-
-            const { data, error } = await supabase
-                .from("todos")
-                .insert([newTodoData])
-                .select();
-
-            if (error) {
-                console.error("Error adding todo:", error.message);
-                const fallbackTodo: Todo = {
-                    id: Date.now(),
-                    ...newTodoData,
-                    created_at: new Date().toISOString(),
-                };
-                setTodos((prev) => [fallbackTodo, ...prev]);
-            } else if (data && data.length > 0) {
-                setTodos((prev) => [data[0], ...prev]);
-            } else {
-                fetchTodos();
-            }
-        }
-
-        resetForm();
-        setIsDialogOpen(false);
-    };
-
-    const resetForm = () => {
-        setTitle("");
-        setContent("");
-        setStartDate(new Date());
-        setEndDate(new Date());
-        setEditingTodo(null);
-    };
-
-    // 필터링 계산
-    const totalCount = todos.length;
-    const inProgressCount = todos.filter((t) => !t.is_completed).length;
-    const completedCount = todos.filter((t) => t.is_completed).length;
-
-    const filteredTodos = todos.filter((todo) => {
-        if (filter === "in_progress") return !todo.is_completed;
-        if (filter === "completed") return todo.is_completed;
-        return true;
-    });
+    const {
+        user,
+        todos,
+        loading,
+        filter,
+        setFilter,
+        totalCount,
+        inProgressCount,
+        completedCount,
+        isDialogOpen,
+        setIsDialogOpen,
+        editingTodo,
+        title,
+        setTitle,
+        content,
+        setContent,
+        startDate,
+        setStartDate,
+        endDate,
+        setEndDate,
+        handleOpenAddDialog,
+        handleOpenEditDialog,
+        handleDeleteTodo,
+        handleSaveTodo,
+        toggleComplete,
+        resetForm,
+        getAuthorDisplayName,
+        getLoggedInUserName,
+    } = useTodos();
 
     return (
         <>
@@ -351,7 +126,7 @@ export default function TodosPage() {
                                             <div className="grid gap-2">
                                                 <label className="text-sm font-medium">작성자</label>
                                                 <Input
-                                                    value={editingTodo ? getAuthorDisplayName(editingTodo) : (getLoggedInUserName() || "로그인 유저")}
+                                                    value={editingTodo ? getAuthorDisplayName(editingTodo.user_id) : (getLoggedInUserName() || "로그인 유저")}
                                                     disabled
                                                     className="bg-muted text-muted-foreground cursor-not-allowed"
                                                 />
@@ -392,7 +167,7 @@ export default function TodosPage() {
                             </CardHeader>
 
                             <CardContent className="p-2 sm:p-6 pt-0">
-                                {filteredTodos.length === 0 ? (
+                                {todos.length === 0 ? (
                                     <div className="text-center py-12 text-muted-foreground border rounded-lg">
                                         {filter === "all"
                                             ? "등록된 할 일이 없습니다."
@@ -402,7 +177,7 @@ export default function TodosPage() {
                                     </div>
                                 ) : (
                                     <div className="space-y-3">
-                                        {filteredTodos.map((todo) => (
+                                        {todos.map((todo) => (
                                             <div
                                                 key={todo.id}
                                                 className={`p-4 rounded-lg border transition-all ${todo.is_completed
@@ -445,7 +220,7 @@ export default function TodosPage() {
                                                     <div className="flex items-center gap-3 flex-wrap min-w-0">
                                                         <span className="flex items-center gap-1 font-medium text-zinc-700 dark:text-zinc-300">
                                                             <User className="w-3 h-3 text-muted-foreground shrink-0" />
-                                                            <span className="truncate max-w-[120px]">{getAuthorDisplayName(todo)}</span>
+                                                            <span className="truncate max-w-[120px]">{getAuthorDisplayName(todo.user_id)}</span>
                                                         </span>
                                                         <span className="text-[11px] text-zinc-400">
                                                             기간: {todo.s_date ? format(new Date(todo.s_date), "yyyy-MM-dd") : "-"} ~ {todo.e_date ? format(new Date(todo.e_date), "yyyy-MM-dd") : "-"}
