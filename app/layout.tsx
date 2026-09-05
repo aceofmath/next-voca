@@ -23,8 +23,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "OO학원 게시판",
-    description: "OO학원 게시판",
+    title: "겸둥학원",
+    description: "겸둥학원",
 };
 
 export default function RootLayout({

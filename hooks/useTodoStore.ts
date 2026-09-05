@@ -5,6 +5,7 @@ export interface Todo {
     id: number;
     s_date: string;
     e_date: string;
+    c_date?: string | null;
     title: string;
     contents: string;
     created_at: string;
@@ -54,16 +55,19 @@ export const useTodoStore = create<TodoState>((set, get) => ({
     },
 
     toggleComplete: async (id: number, currentCompleted: boolean) => {
+        const nextCompleted = !currentCompleted;
+        const newCDate = nextCompleted ? new Date().toISOString() : null;
+
         // Optimistic update
         set((state) => ({
             todos: state.todos.map((todo) =>
-                todo.id === id ? { ...todo, is_completed: !currentCompleted } : todo
+                todo.id === id ? { ...todo, is_completed: nextCompleted, c_date: newCDate } : todo
             ),
         }));
 
         const { error } = await supabase
             .from("todos")
-            .update({ is_completed: !currentCompleted })
+            .update({ is_completed: nextCompleted, c_date: newCDate })
             .eq("id", id);
 
         if (error) {
@@ -71,7 +75,7 @@ export const useTodoStore = create<TodoState>((set, get) => ({
             // Revert on error
             set((state) => ({
                 todos: state.todos.map((todo) =>
-                    todo.id === id ? { ...todo, is_completed: currentCompleted } : todo
+                    todo.id === id ? { ...todo, is_completed: currentCompleted, c_date: todo.c_date } : todo
                 ),
             }));
         }

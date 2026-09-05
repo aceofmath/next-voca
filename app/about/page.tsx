@@ -10,10 +10,10 @@ export default function AboutPage() {
             <div className="text-center mb-20">
                 <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-black dark:text-white mb-6">
                     꿈을 향한 가장 확실한 가이드 <br />
-                    <span className="text-blue-600">터키영어</span>입니다.
+                    <span className="text-blue-600">겸둥수학학원</span>입니다.
                 </h1>
                 <p className="text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
-                    단순한 암기를 넘어, 영어가 학생의 미래에 강력한 도구가 될 수 있도록 <br className="hidden md:inline" />
+                    단순한 암기를 넘어, 학생의 미래에 강력한 도구가 될 수 있도록 <br className="hidden md:inline" />
                     밀착 관리와 체계적인 커리큘럼을 제공합니다.
                 </p>
             </div>
@@ -26,10 +26,10 @@ export default function AboutPage() {
                         진심을 다하는 교육
                     </h2>
                     <p className="text-zinc-600 dark:text-zinc-400 leading-loose">
-                        아이들이 영어를 포기하지 않고 끝까지 완주할 수 있는 힘은 &apos;관심&apos;에서 나옵니다. 터키영어는 단순히 지식을 전달하는 것을 넘어, 학생 개개인의 학습 습관과 심리적 상태까지 세심하게 살피는 1:1 밀착 관리를 원칙으로 합니다.
+                        아이들이 수학을 포기하지 않고 끝까지 완주할 수 있는 힘은 &apos;관심&apos;에서 나옵니다. 겸둥수학는 단순히 지식을 전달하는 것을 넘어, 학생 개개인의 학습 습관과 심리적 상태까지 세심하게 살피는 1:1 밀착 관리를 원칙으로 합니다.
                     </p>
                     <div className="space-y-3">
-                        {["개별 맞춤형 단어 암기 시스템", "철저한 당일 복습 및 확인 학습", "학부모님과의 정기적인 학습 상담"].map((item, index) => (
+                        {["개별 맞춤형 수학 문제해결 시스템", "철저한 당일 복습 및 확인 학습", "학부모님과의 정기적인 학습 상담"].map((item, index) => (
                             <div key={index} className="flex items-center gap-2 text-zinc-700 dark:text-zinc-300">
                                 <CheckCircle2 className="text-blue-500 w-5 h-5" />
                                 <span className="font-medium">{item}</span>
@@ -48,7 +48,7 @@ export default function AboutPage() {
 
             {/* 핵심 시스템 섹션 */}
             <div className="mb-24 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold mb-12">터키영어의 3대 핵심 시스템</h2>
+                <h2 className="text-2xl md:text-3xl font-bold mb-12">겸둥수학의 3대 핵심 시스템</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {[
                         {
@@ -80,7 +80,7 @@ export default function AboutPage() {
 
             {/* 하단 CTA */}
             <div className="bg-blue-600 rounded-3xl p-8 md:p-12 text-center text-white space-y-6 shadow-xl shadow-blue-500/20">
-                <h2 className="text-2xl md:text-3xl font-bold">지금 터키영어와 함께 성장을 시작하세요!</h2>
+                <h2 className="text-2xl md:text-3xl font-bold">지금 겸둥수학와 함께 성장을 시작하세요!</h2>
                 <p className="text-blue-100 max-w-xl mx-auto">
                     학습에 대한 고민이 있다면 언제든 편하게 문의주세요. <br />
                     함께 고민하고 최선의 길을 찾아내겠습니다.

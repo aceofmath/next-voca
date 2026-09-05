@@ -1,6 +1,6 @@
 "use client";
 
-import { format } from "date-fns";
+import { format, startOfDay } from "date-fns";
 import { ko } from "date-fns/locale";
 import { Loader2, User, Plus, CalendarIcon, Pencil, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -57,6 +57,12 @@ export default function TodosPage() {
                     <Loader2 className="h-10 w-10 animate-spin mb-4" />
                     <p className="text-sm font-medium animate-pulse">할 일을 불러오는 중입니다...</p>
                 </div>
+            ) : !user ? (
+                <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 p-12 text-center shadow-sm w-full">
+                    <User className="h-12 w-12 text-zinc-400 mx-auto mb-4" />
+                    <h2 className="text-lg font-semibold mb-2">로그인이 필요합니다</h2>
+                    <p className="text-sm text-muted-foreground">할 일 목록을 보거나 관리하려면 먼저 로그인해주세요.</p>
+                </div>
             ) : (
                 <div className="w-full space-y-6">
                     <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 shadow-sm overflow-hidden w-full">
@@ -67,12 +73,10 @@ export default function TodosPage() {
 
                                     <Button
                                         className="flex items-center gap-1.5 text-xs md:text-sm h-9 px-3 shrink-0"
-                                        disabled={!user}
                                         onClick={handleOpenAddDialog}
-                                        title={!user ? "로그인이 필요합니다" : "할 일 추가"}
                                     >
                                         <Plus className="w-4 h-4" />
-                                        {user ? "할 일 추가" : "추가 (로그인 필요)"}
+                                        할 일 추가
                                     </Button>
                                 </div>
 
@@ -208,6 +212,10 @@ export default function TodosPage() {
                                                             <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 text-[10px] px-1.5 py-0.5">
                                                                 완료
                                                             </Badge>
+                                                        ) : todo.e_date && startOfDay(new Date(todo.e_date)) < startOfDay(new Date()) ? (
+                                                            <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-300 dark:bg-red-950 dark:text-red-300 text-[10px] px-1.5 py-0.5">
+                                                                지연중
+                                                            </Badge>
                                                         ) : (
                                                             <Badge variant="outline" className="text-amber-600 border-amber-300 text-[10px] px-1.5 py-0.5">
                                                                 진행중
@@ -228,6 +236,11 @@ export default function TodosPage() {
                                                         {todo.created_at && (
                                                             <span className="text-[11px] text-zinc-400 hidden sm:inline">
                                                                 등록: {format(new Date(todo.created_at), "yyyy-MM-dd")}
+                                                            </span>
+                                                        )}
+                                                        {todo.is_completed && todo.c_date && (
+                                                            <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                                                                종료: {format(new Date(todo.c_date), "yyyy-MM-dd HH:mm")}
                                                             </span>
                                                         )}
                                                     </div>

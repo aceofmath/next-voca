@@ -106,12 +106,15 @@ export function useTodos() {
         setIsDialogOpen(false);
     };
 
-    // Filter counts
-    const totalCount = todos.length;
-    const inProgressCount = todos.filter((t) => !t.is_completed).length;
-    const completedCount = todos.filter((t) => t.is_completed).length;
+    // Filter user's todos first
+    const userTodos = user ? todos.filter((todo) => todo.user_id === user.id) : [];
 
-    const filteredTodos = todos.filter((todo) => {
+    // Filter counts
+    const totalCount = userTodos.length;
+    const inProgressCount = userTodos.filter((t) => !t.is_completed).length;
+    const completedCount = userTodos.filter((t) => t.is_completed).length;
+
+    const filteredTodos = userTodos.filter((todo) => {
         if (filter === "in_progress") return !todo.is_completed;
         if (filter === "completed") return todo.is_completed;
         return true;
