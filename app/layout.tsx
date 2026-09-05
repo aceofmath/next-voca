@@ -60,6 +60,9 @@ export default function RootLayout({
                         <Link href="/todos" className="hover:text-black dark:hover:text-white transition-colors">
                             할일
                         </Link>
+                        <Link href="/attendance" className="hover:text-black dark:hover:text-white transition-colors">
+                            출석체크
+                        </Link>
                     </nav>
 
                     {/* 오른쪽: 로그인 버튼 */}
