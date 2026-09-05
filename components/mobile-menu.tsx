@@ -42,6 +42,11 @@ export function MobileMenu() {
                                 할일
                             </Link>
                         </SheetClose>
+                        <SheetClose asChild>
+                            <Link href="/attendance" className="text-lg font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors mx-2">
+                                출석체크
+                            </Link>
+                        </SheetClose>
                     </nav>
                     <hr className="border-zinc-200 dark:border-zinc-800" />
                     <div className="flex items-center justify-between">
