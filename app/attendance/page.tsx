@@ -152,6 +152,28 @@ export default function AttendancePage() {
         }
     }, [isAdmin, checkingAdmin, fetchAdminData]);
 
+    // Helper to send email notification to admin users
+    const triggerAttendanceEmail = async (type: "CHECK_IN" | "CHECK_OUT") => {
+        if (!user) return;
+        try {
+            const studentName = getAuthorDisplayName(user.id) || user.email || "학생";
+            const dateTime = format(getKSTNow(), "yyyy-MM-dd HH:mm:ss");
+
+            await fetch("/api/attendance/notify-email", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    studentUserId: user.id,
+                    studentName,
+                    type,
+                    dateTime,
+                }),
+            });
+        } catch (err) {
+            console.error("Attendance email notification error:", err);
+        }
+    };
+
     // Helper to verify user is within allowed radius of location table coordinates
     const verifyLocationPermission = async (): Promise<boolean> => {
         try {
@@ -232,6 +254,8 @@ export default function AttendancePage() {
 
                 if (!error && data) {
                     setTodayAttendance(data);
+                    // 관리자 알림 이메일 전송
+                    triggerAttendanceEmail("CHECK_IN");
                 } else {
                     console.error("Check-in update error:", error?.message);
                 }
@@ -252,6 +276,8 @@ export default function AttendancePage() {
 
                 if (!error && data) {
                     setTodayAttendance(data);
+                    // 관리자 알림 이메일 전송
+                    triggerAttendanceEmail("CHECK_IN");
                 } else {
                     console.error("Check-in insert error:", error?.message);
                 }
@@ -297,6 +323,8 @@ export default function AttendancePage() {
 
             if (!error && data) {
                 setTodayAttendance(data);
+                // 관리자 알림 이메일 전송
+                triggerAttendanceEmail("CHECK_OUT");
             } else {
                 console.error("Check-out update error:", error?.message);
             }
