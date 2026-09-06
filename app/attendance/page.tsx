@@ -25,6 +25,7 @@ interface AttendanceRecord {
 interface ProfileRecord {
     user_id: string;
     name: string;
+    Email?: string | null;
     adminYn?: boolean | null;
 }
 
@@ -115,7 +116,7 @@ export default function AttendancePage() {
         setAdminLoading(true);
         try {
             // Fetch non-admin profiles (students)
-            const { data: profData } = await supabase.from("profile").select("user_id, name, adminYn");
+            const { data: profData } = await supabase.from("profile").select("user_id, name, Email, adminYn");
             if (profData) {
                 setProfiles(profData);
             }
@@ -308,7 +309,7 @@ export default function AttendancePage() {
 
     // Admin edit dialog state
     const [editDialogOpen, setEditDialogOpen] = useState(false);
-    const [editingStudent, setEditingStudent] = useState<{ id?: number; user_id: string; name: string; a_date: string; s_date?: string | null; e_date?: string | null } | null>(null);
+    const [editingStudent, setEditingStudent] = useState<{ id?: number; user_id: string; name: string; Email?: string | null; a_date: string; s_date?: string | null; e_date?: string | null } | null>(null);
     const [editSDate, setEditSDate] = useState("");
     const [editEDate, setEditEDate] = useState("");
     const [savingEdit, setSavingEdit] = useState(false);
@@ -318,6 +319,7 @@ export default function AttendancePage() {
             id: record?.id,
             user_id: student.user_id,
             name: student.name,
+            Email: student.Email,
             a_date,
             s_date: record?.s_date,
             e_date: record?.e_date,
@@ -442,7 +444,9 @@ export default function AttendancePage() {
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
                 <DialogContent className="sm:max-w-[425px] rounded-lg">
                     <DialogHeader>
-                        <DialogTitle>출석 일시 수정 ({editingStudent?.name})</DialogTitle>
+                        <DialogTitle>
+                            출석 일시 수정 ({editingStudent?.name}{editingStudent?.Email ? `(${editingStudent.Email.split("@")[0]})` : ""})
+                        </DialogTitle>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
                         <div className="grid gap-2">
@@ -623,8 +627,10 @@ function AdminView({
                                                             className="flex flex-col p-1 rounded border border-zinc-100 dark:border-zinc-800/60 bg-zinc-50/50 dark:bg-zinc-900/50 gap-0.5 cursor-pointer hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                                                             title="클릭하여 등/하원 일시 수정"
                                                         >
-                                                            <div className="flex items-center justify-between">
-                                                                <span className="truncate max-w-[60px] font-medium">{student.name}</span>
+                                                            <div className="flex items-center justify-between gap-1 overflow-hidden">
+                                                                <span className="truncate font-medium min-w-0" title={student.Email ? `${student.name}(${student.Email.split("@")[0]})` : student.name}>
+                                                                    {student.name}{student.Email ? `(${student.Email.split("@")[0]})` : ""}
+                                                                </span>
                                                                 <span className={`px-1 rounded font-semibold text-[9px] shrink-0 ${statusClass}`}>
                                                                     {statusText}
                                                                 </span>

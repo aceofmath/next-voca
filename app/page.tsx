@@ -10,11 +10,11 @@ export default function Home() {
                 <div className="flex flex-col items-center gap-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-sm font-medium mb-4">
                         <GraduationCap className="w-4 h-4" />
-                        <span>스마트한 영어 학습의 시작</span>
+                        <span>스마트한 수학 학습의 시작</span>
                     </div>
                     <h1 className="text-4xl font-extrabold tracking-tight text-black dark:text-zinc-50 sm:text-7xl">
                         매일 성취하는 <br />
-                        <span className="text-blue-600">나만의 영단어장</span>
+                        <span className="text-blue-600">나만의 수학학습</span>
                     </h1>
                     <p className="max-w-2xl text-lg md:text-xl leading-8 text-zinc-600 dark:text-zinc-400">
                         체계적인 Day별 학습 시스템으로 효율을 높이세요. <br className="hidden sm:inline" />
@@ -35,18 +35,11 @@ export default function Home() {
                 {/* 특징 카드 섹션 */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 w-full text-left mt-8">
                     <div className="p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
-                        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4">
-                            <BookOpen className="w-6 h-6" />
-                        </div>
-                        <h3 className="font-bold text-lg mb-2">Day별 학습</h3>
-                        <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">단계를 나누어 체계적으로 외우는 학습 관리 시스템을 제공합니다.</p>
-                    </div>
-                    <div className="p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
                         <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/50 flex items-center justify-center text-green-600 dark:text-green-400 mb-4">
                             <CheckCircle2 className="w-6 h-6" />
                         </div>
                         <h3 className="font-bold text-lg mb-2">학습 체크</h3>
-                        <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">외운 단어를 바로 체크하고 암기 상태를 직관적으로 확인할 수 있습니다.</p>
+                        <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">배운 정의를 바로 체크하고 이해 상태를 직관적으로 확인할 수 있습니다.</p>
                     </div>
                     <div className="p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
                         <div className="w-10 h-10 rounded-lg bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center text-purple-600 dark:text-purple-400 mb-4">
@@ -54,6 +47,13 @@ export default function Home() {
                         </div>
                         <h3 className="font-bold text-lg mb-2">멀티 디바이스</h3>
                         <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">PC, 태블릿, 모바일 어디서나 최적화된 학습 환경을 경험하세요.</p>
+                    </div>
+                    <div className="p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+                        <div className="w-10 h-10 rounded-lg bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-4">
+                            <BookOpen className="w-6 h-6" />
+                        </div>
+                        <h3 className="font-bold text-lg mb-2">영단어 Day별 학습</h3>
+                        <p className="text-zinc-500 dark:text-zinc-400 text-sm leading-relaxed">영어도 준비할 수 있게 영단어 외우는 학습 관리 시스템을 제공합니다.</p>
                     </div>
                 </div>
             </div>
