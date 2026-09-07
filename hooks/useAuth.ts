@@ -20,19 +20,7 @@ export function useAuth() {
     useEffect(() => {
         fetchUser();
         fetchProfiles();
-
-        const {
-            data: { subscription },
-        } = supabase.auth.onAuthStateChange((_event, session) => {
-            const currentUser = session?.user ?? null;
-            setUser(currentUser);
-            if (currentUser) {
-                syncProfile(currentUser);
-            }
-        });
-
-        return () => subscription.unsubscribe();
-    }, [setUser, fetchUser, syncProfile, fetchProfiles]);
+    }, [fetchUser, fetchProfiles]);
 
     const getAuthorDisplayName = (userId?: string | null) => {
         if (!userId) return "-";

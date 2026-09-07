@@ -10,11 +10,11 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "필수 요청 파라미터가 누락되었습니다." }, { status: 400 });
         }
 
-        // 1. profile 테이블에서 adminYn이 true인 관리자 유저들의 Email 조회
+        // 1. profile 테이블에서 grade가 'A'인 관리자 유저들의 Email 조회
         const { data: admins, error: adminErr } = await supabase
             .from("profile")
             .select("Email, name")
-            .eq("adminYn", true);
+            .eq("grade", "A");
 
         if (adminErr) {
             console.error("관리자 목록 조회 오류:", adminErr.message);

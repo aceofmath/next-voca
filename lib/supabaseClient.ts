@@ -7,4 +7,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
     console.error("Supabase 환경 변수가 없습니다. .env.local을 확인하세요.");
 }
 
-export const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
+export const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "", {
+    auth: {
+        lock: typeof window !== "undefined" && typeof (navigator as any)?.locks?.request === "function" 
+            ? async (name, acquireTimeout, fn) => fn() 
+            : undefined,
+    },
+});

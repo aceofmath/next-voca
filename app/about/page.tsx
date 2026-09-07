@@ -10,7 +10,7 @@ export default function AboutPage() {
             <div className="text-center mb-20">
                 <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-black dark:text-white mb-6">
                     꿈을 향한 가장 확실한 가이드 <br />
-                    <span className="text-blue-600">겸둥수학학원</span>입니다.
+                    <span className="text-blue-600">JOKIM 수학까페학원</span>입니다.
                 </h1>
                 <p className="text-lg text-zinc-600 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">
                     단순한 암기를 넘어, 학생의 미래에 강력한 도구가 될 수 있도록 <br className="hidden md:inline" />
@@ -48,7 +48,7 @@ export default function AboutPage() {
 
             {/* 핵심 시스템 섹션 */}
             <div className="mb-24 text-center">
-                <h2 className="text-2xl md:text-3xl font-bold mb-12">겸둥수학의 3대 핵심 시스템</h2>
+                <h2 className="text-2xl md:text-3xl font-bold mb-12">JOKIM 수학까페의 3대 핵심 시스템</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {[
                         {

@@ -15,6 +15,8 @@ interface AuthState {
     logout: () => Promise<void>;
 }
 
+let initialized = false;
+
 export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
     loading: true,
@@ -23,11 +25,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     setProfileMap: (map) => set({ profileMap: map }),
 
     fetchUser: async () => {
+        if (initialized) return;
+        initialized = true;
+
         try {
             set({ loading: true });
             const {
-                data: { user },
-            } = await supabase.auth.getUser();
+                data: { session },
+            } = await supabase.auth.getSession();
+            const user = session?.user ?? null;
             set({ user });
             if (user) {
                 await get().syncProfile(user);
@@ -37,6 +43,14 @@ export const useAuthStore = create<AuthState>((set, get) => ({
         } finally {
             set({ loading: false });
         }
+
+        supabase.auth.onAuthStateChange(async (_event, session) => {
+            const currentUser = session?.user ?? null;
+            set({ user: currentUser });
+            if (currentUser) {
+                await get().syncProfile(currentUser);
+            }
+        });
     },
 
     syncProfile: async (currentUser) => {
@@ -56,11 +70,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
                         Email: currentUser.email || "",
                     },
                 ],
-                { onConflict: "user_id" }
+                { onConflict: "user_id", ignoreDuplicates: true }
             );
-
-            // Refresh profile map after sync
-            await get().fetchProfiles();
         } catch (err) {
             console.error("Profile sync error:", err);
         }

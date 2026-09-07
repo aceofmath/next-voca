@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { MobileMenu } from "@/components/mobile-menu"; // Import the new MobileMenu component
 import { ThemeToggle } from "@/components/theme-toggle"; // Import the new ThemeToggle component
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthStatus } from "@/components/auth-status";
 
@@ -23,8 +24,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-    title: "겸둥학원",
-    description: "겸둥학원",
+    title: "JOKIM 수학까페학원",
+    description: "JOKIM 수학까페학원만의 특별함을 경험하세요!",
 };
 
 export default function RootLayout({
@@ -79,7 +80,9 @@ export default function RootLayout({
                     </div>
                 </header>
 
-                {children}
+                <TooltipProvider>
+                    {children}
+                </TooltipProvider>
 
                 {/* 푸터 */}
                 <footer className="py-8 px-8 border-t border-zinc-200 dark:border-zinc-800 text-center text-sm text-zinc-500">

@@ -47,6 +47,11 @@ export function MobileMenu() {
                                 출석체크
                             </Link>
                         </SheetClose>
+                        <SheetClose asChild>
+                            <Link href="/admin" className="text-lg font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-700 transition-colors mx-2">
+                                ADMIN (관리자)
+                            </Link>
+                        </SheetClose>
                     </nav>
                     <hr className="border-zinc-200 dark:border-zinc-800" />
                     <div className="flex items-center justify-between">
