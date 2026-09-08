@@ -53,6 +53,7 @@ import {
     HelpCircle,
     Bell,
     Sparkles,
+    MapPin,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -163,6 +164,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             title: "학생 출석 관리",
             url: "/admin/attendance",
             icon: CalendarCheck,
+        },
+        {
+            title: "학원 위치 관리",
+            url: "/admin/location",
+            icon: MapPin,
         },
     ];
 

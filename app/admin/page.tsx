@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/lib/supabaseClient";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, UserCheck, UserX, GraduationCap, RefreshCw, CalendarCheck, ArrowRight } from "lucide-react";
+import { Users, UserCheck, UserX, GraduationCap, RefreshCw, CalendarCheck, ArrowRight, MapPin } from "lucide-react";
 import Link from "next/link";
 
 interface UserProfile {
@@ -114,7 +114,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Quick Link Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="shadow-sm">
                     <CardHeader>
                         <CardTitle className="text-lg font-bold flex items-center gap-2">
@@ -126,7 +126,7 @@ export default function AdminDashboardPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button asChild className="gap-2">
+                        <Button asChild className="gap-2 w-full">
                             <Link href="/admin/member">
                                 회원 등급 관리 바로가기
                                 <ArrowRight className="w-4 h-4" />
@@ -146,9 +146,29 @@ export default function AdminDashboardPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button asChild variant="outline" className="gap-2">
+                        <Button asChild variant="outline" className="gap-2 w-full">
                             <Link href="/admin/attendance">
                                 출석 관리 바로가기
+                                <ArrowRight className="w-4 h-4" />
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                            <MapPin className="w-5 h-5 text-red-500" />
+                            학원 위치 관리
+                        </CardTitle>
+                        <CardDescription>
+                            출석 체크 인정 기준 좌표(위도/경도)와 허용 반경(m)을 설정하고 지도 영역을 확인합니다.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button asChild variant="outline" className="gap-2 w-full">
+                            <Link href="/admin/location">
+                                위치 관리 바로가기
                                 <ArrowRight className="w-4 h-4" />
                             </Link>
                         </Button>
