@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { format } from "date-fns";
 import { ko } from "date-fns/locale";
-import { Loader2, User, Calendar as CalendarIcon, LogIn, LogOut, XCircle } from "lucide-react";
+import { Loader2, User, Calendar as CalendarIcon, LogIn, LogOut, XCircle, MapPin, Navigation, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
@@ -19,6 +19,13 @@ interface AttendanceRecord {
     user_id: string;
 }
 
+interface TargetLocation {
+    latitude: number;
+    longitude: number;
+    radius: number;
+    name?: string;
+}
+
 export default function AttendancePage() {
     const { user, loading: authLoading, getAuthorDisplayName } = useAuth();
 
@@ -27,6 +34,11 @@ export default function AttendancePage() {
 
     const [todayAttendance, setTodayAttendance] = useState<AttendanceRecord | null>(null);
     const [studentLoading, setStudentLoading] = useState<boolean>(false);
+
+    // Current position state
+    const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
+    const [targetLocation, setTargetLocation] = useState<TargetLocation | null>(null);
+    const [fetchingLocation, setFetchingLocation] = useState<boolean>(false);
 
     const todayStr = getKSTDateString();
 
@@ -84,11 +96,47 @@ export default function AttendancePage() {
         }
     }, [user, todayStr]);
 
-    useEffect(() => {
-        if (user && isStudent && !checkingStatus) {
-            fetchTodayAttendance();
+    // Load current GPS position & Target academy location
+    const loadMapLocation = useCallback(async () => {
+        setFetchingLocation(true);
+        try {
+            // Fetch academy target location from DB
+            const { data: locData } = await supabase
+                .from("location")
+                .select("*")
+                .limit(1)
+                .maybeSingle();
+
+            if (locData && locData.latitude != null && locData.longitude != null) {
+                setTargetLocation({
+                    latitude: Number(locData.latitude),
+                    longitude: Number(locData.longitude),
+                    radius: Number(locData.allowedRadiusMeters ?? locData.radius ?? 100),
+                    name: locData.name || "학원",
+                });
+            }
+
+            // Get browser current position
+            const pos = await getCurrentPosition();
+            setUserCoords({
+                lat: Number(pos.coords.latitude.toFixed(6)),
+                lng: Number(pos.coords.longitude.toFixed(6)),
+            });
+        } catch (err) {
+            console.error("Failed to load map position:", err);
+        } finally {
+            setFetchingLocation(false);
         }
-    }, [user, isStudent, checkingStatus, fetchTodayAttendance]);
+    }, []);
+
+    useEffect(() => {
+        if (user && !checkingStatus) {
+            if (isStudent) {
+                fetchTodayAttendance();
+            }
+            loadMapLocation();
+        }
+    }, [user, isStudent, checkingStatus, fetchTodayAttendance, loadMapLocation]);
 
     // Helper to send email notification to admin users
     const triggerAttendanceEmail = async (type: "CHECK_IN" | "CHECK_OUT") => {
@@ -140,6 +188,12 @@ export default function AttendancePage() {
             const position = await getCurrentPosition();
             const userLat = position.coords.latitude;
             const userLon = position.coords.longitude;
+
+            // Update userCoords state
+            setUserCoords({
+                lat: Number(userLat.toFixed(6)),
+                lng: Number(userLon.toFixed(6)),
+            });
 
             const distance = getDistanceInMeters(userLat, userLon, targetLat, targetLon);
 
@@ -262,6 +316,12 @@ export default function AttendancePage() {
     const hasCheckIn = Boolean(todayAttendance?.s_date);
     const hasCheckOut = Boolean(todayAttendance?.e_date);
 
+    // Dynamic Google Maps iframe URL
+    const mapLat = userCoords?.lat ?? targetLocation?.latitude ?? 37.5665;
+    const mapLng = userCoords?.lng ?? targetLocation?.longitude ?? 126.9780;
+    const googleMapsEmbedUrl = `https://maps.google.com/maps?q=${mapLat},${mapLng}&z=16&output=embed`;
+    const googleMapsDirectUrl = `https://www.google.com/maps?q=${mapLat},${mapLng}`;
+
     return (
         <main className="flex-1 w-full max-w-xl mx-auto py-12 px-6 space-y-6">
             <div className="flex flex-col items-center text-center space-y-2 mb-6">
@@ -284,83 +344,158 @@ export default function AttendancePage() {
                     <p className="text-sm text-muted-foreground">출석 정보를 확인하고 등/하원 체크를 하려면 먼저 로그인해주세요.</p>
                 </div>
             ) : isStudent ? (
-                <Card className="border border-zinc-200 dark:border-zinc-800 shadow-md">
-                    <CardHeader className="text-center pb-4 border-b border-zinc-100 dark:border-zinc-800/80">
-                        <CardTitle className="text-lg md:text-xl font-bold">오늘의 출석 상태</CardTitle>
-                        <CardDescription>등원 및 하원 버튼을 클릭하여 출석 상태를 기록하세요.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="pt-6 pb-8 px-6 space-y-8">
-                        {/* Status Info Display */}
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-colors ${hasCheckIn
-                                ? "bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900"
-                                : "bg-zinc-50 border-zinc-200 dark:bg-zinc-900/50 dark:border-zinc-800"
-                                }`}>
-                                <span className="text-xs text-muted-foreground mb-1">등원 시간</span>
-                                <span className={`font-semibold text-sm md:text-base ${hasCheckIn ? "text-blue-700 dark:text-blue-300" : "text-zinc-400"}`}>
-                                    {todayAttendance?.s_date ? format(new Date(todayAttendance.s_date), "HH:mm:ss") : "미등원"}
-                                </span>
+                <>
+                    <Card className="border border-zinc-200 dark:border-zinc-800 shadow-md">
+                        <CardHeader className="text-center pb-4 border-b border-zinc-100 dark:border-zinc-800/80">
+                            <CardTitle className="text-lg md:text-xl font-bold">오늘의 출석 상태</CardTitle>
+                            <CardDescription>등원 및 하원 버튼을 클릭하여 출석 상태를 기록하세요.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="pt-6 pb-8 px-6 space-y-8">
+                            {/* Status Info Display */}
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-colors ${hasCheckIn
+                                    ? "bg-blue-50 border-blue-200 dark:bg-blue-950/40 dark:border-blue-900"
+                                    : "bg-zinc-50 border-zinc-200 dark:bg-zinc-900/50 dark:border-zinc-800"
+                                    }`}>
+                                    <span className="text-xs text-muted-foreground mb-1">등원 시간</span>
+                                    <span className={`font-semibold text-sm md:text-base ${hasCheckIn ? "text-blue-700 dark:text-blue-300" : "text-zinc-400"}`}>
+                                        {todayAttendance?.s_date ? format(new Date(todayAttendance.s_date), "HH:mm:ss") : "미등원"}
+                                    </span>
+                                </div>
+
+                                <div className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-colors ${hasCheckOut
+                                    ? "bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-900"
+                                    : "bg-zinc-50 border-zinc-200 dark:bg-zinc-900/50 dark:border-zinc-800"
+                                    }`}>
+                                    <span className="text-xs text-muted-foreground mb-1">하원 시간</span>
+                                    <span className={`font-semibold text-sm md:text-base ${hasCheckOut ? "text-red-700 dark:text-red-300" : "text-zinc-400"}`}>
+                                        {todayAttendance?.e_date ? format(new Date(todayAttendance.e_date), "HH:mm:ss") : "미하원"}
+                                    </span>
+                                </div>
                             </div>
 
-                            <div className={`p-4 rounded-xl border flex flex-col items-center justify-center text-center transition-colors ${hasCheckOut
-                                ? "bg-red-50 border-red-200 dark:bg-red-950/40 dark:border-red-900"
-                                : "bg-zinc-50 border-zinc-200 dark:bg-zinc-900/50 dark:border-zinc-800"
-                                }`}>
-                                <span className="text-xs text-muted-foreground mb-1">하원 시간</span>
-                                <span className={`font-semibold text-sm md:text-base ${hasCheckOut ? "text-red-700 dark:text-red-300" : "text-zinc-400"}`}>
-                                    {todayAttendance?.e_date ? format(new Date(todayAttendance.e_date), "HH:mm:ss") : "미하원"}
-                                </span>
+                            {/* Attendance Action Buttons */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <Button
+                                    size="lg"
+                                    disabled={studentLoading}
+                                    onClick={handleCheckIn}
+                                    className={`h-24 flex flex-col items-center justify-center gap-1 text-base font-bold transition-all shadow-sm ${hasCheckIn
+                                        ? "bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
+                                        : "bg-white hover:bg-zinc-100 text-zinc-900 border border-zinc-300 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 dark:border-zinc-700"
+                                        }`}
+                                >
+                                    <LogIn className="w-6 h-6 mb-1" />
+                                    {hasCheckIn && todayAttendance?.s_date ? (
+                                        <>
+                                            <span>등원 완료</span>
+                                            <span className="text-xs font-normal opacity-90">
+                                                {format(new Date(todayAttendance.s_date), "HH:mm:ss")}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span>등원</span>
+                                    )}
+                                </Button>
+
+                                <Button
+                                    size="lg"
+                                    disabled={studentLoading}
+                                    onClick={handleCheckOut}
+                                    className={`h-24 flex flex-col items-center justify-center gap-1 text-base font-bold transition-all shadow-sm ${hasCheckOut
+                                        ? "bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700"
+                                        : "bg-white hover:bg-zinc-100 text-zinc-900 border border-zinc-300 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 dark:border-zinc-700"
+                                        }`}
+                                >
+                                    <LogOut className="w-6 h-6 mb-1" />
+                                    {hasCheckOut && todayAttendance?.e_date ? (
+                                        <>
+                                            <span>하원 완료</span>
+                                            <span className="text-xs font-normal opacity-90">
+                                                {format(new Date(todayAttendance.e_date), "HH:mm:ss")}
+                                            </span>
+                                        </>
+                                    ) : (
+                                        <span>하원</span>
+                                    )}
+                                </Button>
                             </div>
-                        </div>
+                        </CardContent>
+                    </Card>
 
-                        {/* Attendance Action Buttons */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <Button
-                                size="lg"
-                                disabled={studentLoading}
-                                onClick={handleCheckIn}
-                                className={`h-24 flex flex-col items-center justify-center gap-1 text-base font-bold transition-all shadow-sm ${hasCheckIn
-                                    ? "bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700"
-                                    : "bg-white hover:bg-zinc-100 text-zinc-900 border border-zinc-300 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 dark:border-zinc-700"
-                                    }`}
-                            >
-                                <LogIn className="w-6 h-6 mb-1" />
-                                {hasCheckIn && todayAttendance?.s_date ? (
-                                    <>
-                                        <span>등원 완료</span>
-                                        <span className="text-xs font-normal opacity-90">
-                                            {format(new Date(todayAttendance.s_date), "HH:mm:ss")}
-                                        </span>
-                                    </>
+                    {/* Google Maps Current Location View */}
+                    <Card className="border border-zinc-200 dark:border-zinc-800 shadow-md">
+                        <CardHeader className="pb-3 border-b border-zinc-100 dark:border-zinc-800">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                    <MapPin className="w-5 h-5 text-red-500" />
+                                    <CardTitle className="text-base font-bold">현재 위치 (Google Maps)</CardTitle>
+                                </div>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={loadMapLocation}
+                                    disabled={fetchingLocation}
+                                    className="h-8 gap-1 text-xs"
+                                >
+                                    {fetchingLocation ? (
+                                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                        <Navigation className="w-3.5 h-3.5" />
+                                    )}
+                                    위치 갱신
+                                </Button>
+                            </div>
+                            <CardDescription className="text-xs">
+                                {userCoords ? (
+                                    <>위도: <strong className="text-foreground">{userCoords.lat}</strong>, 경도: <strong className="text-foreground">{userCoords.lng}</strong></>
                                 ) : (
-                                    <span>등원</span>
+                                    "GPS 위치 확인 중..."
                                 )}
-                            </Button>
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent className="p-4 space-y-3">
+                            <div className="w-full h-72 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-800 relative bg-zinc-100 dark:bg-zinc-900">
+                                {fetchingLocation && !userCoords && (
+                                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-zinc-900/10 backdrop-blur-sm text-zinc-600 dark:text-zinc-400">
+                                        <Loader2 className="w-6 h-6 animate-spin mb-2" />
+                                        <span className="text-xs font-medium">GPS 좌표를 조회하고 있습니다...</span>
+                                    </div>
+                                )}
+                                <iframe
+                                    title="Google Maps Location"
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 0 }}
+                                    loading="lazy"
+                                    allowFullScreen
+                                    src={googleMapsEmbedUrl}
+                                />
+                            </div>
 
-                            <Button
-                                size="lg"
-                                disabled={studentLoading}
-                                onClick={handleCheckOut}
-                                className={`h-24 flex flex-col items-center justify-center gap-1 text-base font-bold transition-all shadow-sm ${hasCheckOut
-                                    ? "bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-700"
-                                    : "bg-white hover:bg-zinc-100 text-zinc-900 border border-zinc-300 dark:bg-zinc-900 dark:text-zinc-100 dark:hover:bg-zinc-800 dark:border-zinc-700"
-                                    }`}
-                            >
-                                <LogOut className="w-6 h-6 mb-1" />
-                                {hasCheckOut && todayAttendance?.e_date ? (
-                                    <>
-                                        <span>하원 완료</span>
-                                        <span className="text-xs font-normal opacity-90">
-                                            {format(new Date(todayAttendance.e_date), "HH:mm:ss")}
-                                        </span>
-                                    </>
-                                ) : (
-                                    <span>하원</span>
-                                )}
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
+                            <div className="flex items-center justify-between gap-2 pt-1">
+                                <span className="text-xs text-muted-foreground truncate">
+                                    {targetLocation ? (
+                                        `등록 학원: ${targetLocation.name || "학원"} (반경 ${targetLocation.radius}m)`
+                                    ) : (
+                                        "위치 정보 동동"
+                                    )}
+                                </span>
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    asChild
+                                    className="h-8 gap-1.5 text-xs whitespace-nowrap"
+                                >
+                                    <a href={googleMapsDirectUrl} target="_blank" rel="noopener noreferrer">
+                                        Google 지도에서 보기
+                                        <ExternalLink className="w-3.5 h-3.5" />
+                                    </a>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </>
             ) : (
                 <div className="flex flex-col items-center justify-center p-12 text-center border border-amber-200 dark:border-amber-900/50 bg-amber-50/50 dark:bg-amber-950/10 rounded-2xl max-w-xl mx-auto my-12 gap-4">
                     <XCircle className="w-12 h-12 text-amber-500" />
@@ -374,3 +509,4 @@ export default function AttendancePage() {
         </main>
     );
 }
+
