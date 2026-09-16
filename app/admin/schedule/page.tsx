@@ -17,6 +17,7 @@ import {
 } from "@/lib/scheduleUtils";
 import { fetchCommonCodes } from "@/lib/codeUtils";
 import { CommonCode } from "@/lib/codeTypes";
+import { supabase } from "@/lib/supabaseClient";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,6 +56,11 @@ import {
     Check,
 } from "lucide-react";
 
+interface TeacherUser {
+    user_id: string;
+    name: string;
+}
+
 const SLOT_HEIGHT = 46; // height in px for each 30-min slot
 const START_HOUR_MINUTES = 9 * 60; // 09:00 = 540 minutes
 
@@ -63,6 +69,8 @@ export default function AdminSchedulePage() {
     const [loading, setLoading] = useState<boolean>(true);
     const [dbRooms, setDbRooms] = useState<CommonCode[]>([]);
     const [dbGrades, setDbGrades] = useState<CommonCode[]>([]);
+    const [dbDays, setDbDays] = useState<CommonCode[]>([]);
+    const [dbTeachers, setDbTeachers] = useState<TeacherUser[]>([]);
 
     // Filters
     const [filterInstructor, setFilterInstructor] = useState<string>("all");
@@ -73,11 +81,11 @@ export default function AdminSchedulePage() {
     const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
     const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
 
-    // Form inputs
+    // Form inputs (stores user_id for instructor, code_value for room & targetGrade)
     const [formTitle, setFormTitle] = useState<string>("");
-    const [formInstructor, setFormInstructor] = useState<string>("");
-    const [formRoom, setFormRoom] = useState<string>("");
-    const [formTargetGrade, setFormTargetGrade] = useState<string>("");
+    const [formInstructor, setFormInstructor] = useState<string>(""); // user_id
+    const [formRoom, setFormRoom] = useState<string>("");             // code_value
+    const [formTargetGrade, setFormTargetGrade] = useState<string>("");   // code_value
     const [formDayOfWeek, setFormDayOfWeek] = useState<DayOfWeek>("mon");
     const [formStartTime, setFormStartTime] = useState<string>("10:00");
     const [formEndTime, setFormEndTime] = useState<string>("12:00");
@@ -90,16 +98,26 @@ export default function AdminSchedulePage() {
     const loadData = async () => {
         setLoading(true);
         try {
-            const [scheduleData, roomCodes, gradeCodes] = await Promise.all([
+            const [scheduleData, roomCodes, gradeCodes, dayCodes, teacherRes] = await Promise.all([
                 fetchScheduleItems(),
                 fetchCommonCodes("ROOM"),
                 fetchCommonCodes("GRADE"),
+                fetchCommonCodes("DAY"),
+                supabase.from("profile").select("user_id, name, grade").eq("grade", "T").order("name"),
             ]);
+
             setItems(scheduleData);
             setDbRooms(roomCodes.filter((c) => c.isUse));
             setDbGrades(gradeCodes.filter((c) => c.isUse));
+            setDbDays(dayCodes.filter((c) => c.isUse));
+
+            const teachersList: TeacherUser[] = (teacherRes.data || []).map((p: any) => ({
+                user_id: p.user_id,
+                name: p.name || "미지정 강사",
+            }));
+            setDbTeachers(teachersList);
         } catch (err) {
-            console.error("Failed to load schedule items & common codes:", err);
+            console.error("Failed to load schedule items, common codes & teachers:", err);
         } finally {
             setLoading(false);
         }
@@ -109,23 +127,72 @@ export default function AdminSchedulePage() {
         loadData();
     }, []);
 
-    // Unique lists for filter dropdowns
-    const instructorOptions = useMemo(() => {
-        const set = new Set(items.map((i) => i.instructor).filter(Boolean));
-        return Array.from(set);
-    }, [items]);
+    // Dynamic Days List from Common Codes (DAY category)
+    const daysList = useMemo(() => {
+        if (dbDays.length > 0) {
+            return dbDays.map((d) => ({
+                key: d.codeValue as DayOfWeek,
+                label: d.codeName,
+                short: d.codeName.replace("요일", ""),
+            }));
+        }
+        return DAYS_OF_WEEK;
+    }, [dbDays]);
 
-    const roomOptions = useMemo(() => {
-        const set = new Set([...dbRooms.map((r) => r.codeName), ...items.map((i) => i.room)].filter(Boolean));
+    // Lookup mappings for UI rendering
+    const teacherMap = useMemo(() => {
+        const map: Record<string, string> = {};
+        dbTeachers.forEach((t) => {
+            map[t.user_id] = t.name;
+        });
+        return map;
+    }, [dbTeachers]);
+
+    const roomMap = useMemo(() => {
+        const map: Record<string, string> = {};
+        dbRooms.forEach((r) => {
+            map[r.codeValue] = r.codeName;
+        });
+        return map;
+    }, [dbRooms]);
+
+    const gradeMap = useMemo(() => {
+        const map: Record<string, string> = {};
+        dbGrades.forEach((g) => {
+            map[g.codeValue] = g.codeName;
+        });
+        return map;
+    }, [dbGrades]);
+
+    // Unique options for top filter dropdowns
+    const instructorFilterOptions = useMemo(() => {
+        const set = new Set<string>();
+        dbTeachers.forEach((t) => set.add(t.user_id));
+        items.forEach((i) => {
+            if (i.instructor) set.add(i.instructor);
+        });
+        return Array.from(set);
+    }, [items, dbTeachers]);
+
+    const roomFilterOptions = useMemo(() => {
+        const set = new Set<string>();
+        dbRooms.forEach((r) => set.add(r.codeValue));
+        items.forEach((i) => {
+            if (i.room) set.add(i.room);
+        });
         return Array.from(set);
     }, [items, dbRooms]);
 
-    const gradeOptions = useMemo(() => {
-        const set = new Set([...dbGrades.map((g) => g.codeName), ...items.map((i) => i.targetGrade)].filter(Boolean));
+    const gradeFilterOptions = useMemo(() => {
+        const set = new Set<string>();
+        dbGrades.forEach((g) => set.add(g.codeValue));
+        items.forEach((i) => {
+            if (i.targetGrade) set.add(i.targetGrade);
+        });
         return Array.from(set);
     }, [items, dbGrades]);
 
-    // Filtered items
+    // Filtered items for display
     const filteredItems = useMemo(() => {
         return items.filter((item) => {
             if (filterInstructor !== "all" && item.instructor !== filterInstructor) return false;
@@ -139,12 +206,12 @@ export default function AdminSchedulePage() {
     const handleOpenCreate = (day: DayOfWeek = "mon", startTime: string = "09:00") => {
         setEditingItem(null);
         setFormTitle("");
-        setFormInstructor("");
-        setFormRoom(dbRooms[0]?.codeName || "101호");
-        setFormTargetGrade(dbGrades[0]?.codeName || "고1");
+        setFormInstructor(dbTeachers[0]?.user_id || "");
+        setFormRoom(dbRooms[0]?.codeValue || "");
+        setFormTargetGrade(dbGrades[0]?.codeValue || "");
         setFormDayOfWeek(day);
         setFormStartTime(startTime);
-        // Default end time + 1 hr
+
         const startMin = timeToMinutes(startTime);
         const endMin = Math.min(startMin + 120, 24 * 60);
         setFormEndTime(minutesToTime(endMin));
@@ -177,8 +244,8 @@ export default function AdminSchedulePage() {
             setFormError("수업명을 입력해 주세요.");
             return;
         }
-        if (!formInstructor.trim()) {
-            setFormError("담당 강사명을 입력해 주세요.");
+        if (!formInstructor) {
+            setFormError("담당 강사를 선택해 주세요.");
             return;
         }
 
@@ -193,9 +260,9 @@ export default function AdminSchedulePage() {
         const newItem: ScheduleItem = {
             id: editingItem ? editingItem.id : `sched-${Date.now()}`,
             title: formTitle.trim(),
-            instructor: formInstructor.trim(),
-            room: formRoom.trim() || "강의실 미지정",
-            targetGrade: formTargetGrade.trim() || "전체",
+            instructor: formInstructor, // user_id
+            room: formRoom,             // code_value
+            targetGrade: formTargetGrade, // code_value
             dayOfWeek: formDayOfWeek,
             startTime: formStartTime,
             endTime: formEndTime,
@@ -283,9 +350,9 @@ export default function AdminSchedulePage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">전체 강사</SelectItem>
-                                    {instructorOptions.map((ins) => (
-                                        <SelectItem key={ins} value={ins}>
-                                            {ins}
+                                    {instructorFilterOptions.map((userId) => (
+                                        <SelectItem key={userId} value={userId}>
+                                            {teacherMap[userId] || userId}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -300,9 +367,9 @@ export default function AdminSchedulePage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">전체 강의실</SelectItem>
-                                    {roomOptions.map((r) => (
-                                        <SelectItem key={r} value={r}>
-                                            {r}
+                                    {roomFilterOptions.map((val) => (
+                                        <SelectItem key={val} value={val}>
+                                            {roomMap[val] || val}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -317,9 +384,9 @@ export default function AdminSchedulePage() {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">전체 대상</SelectItem>
-                                    {gradeOptions.map((g) => (
-                                        <SelectItem key={g} value={g}>
-                                            {g}
+                                    {gradeFilterOptions.map((val) => (
+                                        <SelectItem key={val} value={val}>
+                                            {gradeMap[val] || val}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
@@ -348,7 +415,7 @@ export default function AdminSchedulePage() {
                 </CardContent>
             </Card>
 
-            {/* Print Header (Visible only when printing) */}
+            {/* Print Header */}
             <div className="hidden print:block mb-6">
                 <h1 className="text-2xl font-bold text-center">JOKIM 수학까페학원 - 주간 시간표</h1>
                 <p className="text-xs text-center text-zinc-500 mt-1">
@@ -362,12 +429,10 @@ export default function AdminSchedulePage() {
                     <div className="min-w-[900px] relative select-none">
                         {/* Days Header */}
                         <div className="grid grid-cols-8 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900 sticky top-0 z-20">
-                            {/* Time Column Header */}
                             <div className="p-3 text-center text-xs font-bold text-zinc-500 border-r border-zinc-200 dark:border-zinc-800">
                                 시간 / 요일
                             </div>
-                            {/* Mon ~ Sun Headers */}
-                            {DAYS_OF_WEEK.map((day) => {
+                            {daysList.map((day) => {
                                 const dayCount = filteredItems.filter((i) => i.dayOfWeek === day.key).length;
                                 const isWeekend = day.key === "sat" || day.key === "sun";
                                 return (
@@ -390,8 +455,7 @@ export default function AdminSchedulePage() {
 
                         {/* Grid Rows Container */}
                         <div className="relative">
-                            {/* Background Time Slots Rows */}
-                            {timeSlots.map((slot, index) => {
+                            {timeSlots.map((slot) => {
                                 const isHour = slot.endsWith(":00");
                                 return (
                                     <div
@@ -403,13 +467,11 @@ export default function AdminSchedulePage() {
                                         }`}
                                         style={{ height: `${SLOT_HEIGHT}px` }}
                                     >
-                                        {/* Time Label */}
                                         <div className="flex items-center justify-center border-r border-zinc-200 dark:border-zinc-800 text-xs font-medium text-zinc-500 bg-zinc-50 dark:bg-zinc-900">
                                             {slot}
                                         </div>
 
-                                        {/* Blank Clickable Cells for Mon~Sun */}
-                                        {DAYS_OF_WEEK.map((day) => (
+                                        {daysList.map((day) => (
                                             <div
                                                 key={`${day.key}-${slot}`}
                                                 onClick={() => handleOpenCreate(day.key, slot)}
@@ -423,11 +485,9 @@ export default function AdminSchedulePage() {
 
                             {/* Schedule Items Absolute Overlay Layer */}
                             <div className="absolute top-0 left-0 w-full h-full pointer-events-none grid grid-cols-8">
-                                {/* Left Empty Column (for Time Labels alignment) */}
                                 <div />
 
-                                {/* 7 Day Columns */}
-                                {DAYS_OF_WEEK.map((day) => {
+                                {daysList.map((day) => {
                                     const dayItems = filteredItems.filter((i) => i.dayOfWeek === day.key);
                                     return (
                                         <div key={day.key} className="relative w-full h-full border-r border-transparent">
@@ -435,9 +495,12 @@ export default function AdminSchedulePage() {
                                                 const startMin = timeToMinutes(item.startTime);
                                                 const endMin = timeToMinutes(item.endTime);
 
-                                                // Top position & Height calculation
                                                 const topPx = ((startMin - START_HOUR_MINUTES) / 30) * SLOT_HEIGHT;
                                                 const heightPx = Math.max(((endMin - startMin) / 30) * SLOT_HEIGHT - 2, SLOT_HEIGHT - 2);
+
+                                                const displayInstructor = teacherMap[item.instructor] || item.instructor || "강사 미지정";
+                                                const displayRoom = roomMap[item.room] || item.room || "강의실 미지정";
+                                                const displayGrade = gradeMap[item.targetGrade] || item.targetGrade || "전체";
 
                                                 return (
                                                     <div
@@ -457,18 +520,18 @@ export default function AdminSchedulePage() {
                                                                     {item.title}
                                                                 </span>
                                                                 <Badge variant="secondary" className="text-[10px] px-1 py-0 h-4 bg-white/20 text-white border-0 font-medium shrink-0">
-                                                                    {item.targetGrade}
+                                                                    {displayGrade}
                                                                 </Badge>
                                                             </div>
 
                                                             <div className="text-[11px] opacity-90 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5">
                                                                 <span className="flex items-center gap-0.5">
                                                                     <User className="w-3 h-3" />
-                                                                    {item.instructor}
+                                                                    {displayInstructor}
                                                                 </span>
                                                                 <span className="flex items-center gap-0.5">
                                                                     <MapPin className="w-3 h-3" />
-                                                                    {item.room}
+                                                                    {displayRoom}
                                                                 </span>
                                                             </div>
                                                         </div>
@@ -530,19 +593,25 @@ export default function AdminSchedulePage() {
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
                                 <Label htmlFor="instructor" className="text-xs font-semibold">
-                                    담당 강사 <span className="text-red-500">*</span>
+                                    담당 강사 선택 <span className="text-red-500">*</span>
                                 </Label>
-                                <Input
-                                    id="instructor"
-                                    value={formInstructor}
-                                    onChange={(e) => setFormInstructor(e.target.value)}
-                                    placeholder="예: 김수학 원장"
-                                    className="h-9 text-sm"
-                                />
+                                <Select value={formInstructor} onValueChange={setFormInstructor}>
+                                    <SelectTrigger className="h-9 text-sm">
+                                        <SelectValue placeholder="담당 강사 선택" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {dbTeachers.map((t) => (
+                                            <SelectItem key={t.user_id} value={t.user_id}>
+                                                {t.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
+
                             <div className="space-y-1.5">
                                 <Label htmlFor="room" className="text-xs font-semibold">
-                                    강의실 선택 (공통코드)
+                                    강의실 (code_value)
                                 </Label>
                                 <Select value={formRoom} onValueChange={setFormRoom}>
                                     <SelectTrigger className="h-9 text-sm">
@@ -550,7 +619,7 @@ export default function AdminSchedulePage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {dbRooms.map((r) => (
-                                            <SelectItem key={r.id} value={r.codeName}>
+                                            <SelectItem key={r.id} value={r.codeValue}>
                                                 {r.codeName} {r.description ? `(${r.description})` : ""}
                                             </SelectItem>
                                         ))}
@@ -563,7 +632,7 @@ export default function AdminSchedulePage() {
                         <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1.5">
                                 <Label htmlFor="targetGrade" className="text-xs font-semibold">
-                                    수강 대상 선택 (공통코드)
+                                    수강 대상 (code_value)
                                 </Label>
                                 <Select value={formTargetGrade} onValueChange={setFormTargetGrade}>
                                     <SelectTrigger className="h-9 text-sm">
@@ -571,7 +640,7 @@ export default function AdminSchedulePage() {
                                     </SelectTrigger>
                                     <SelectContent>
                                         {dbGrades.map((g) => (
-                                            <SelectItem key={g.id} value={g.codeName}>
+                                            <SelectItem key={g.id} value={g.codeValue}>
                                                 {g.codeName} {g.description ? `(${g.description})` : ""}
                                             </SelectItem>
                                         ))}
@@ -579,13 +648,13 @@ export default function AdminSchedulePage() {
                                 </Select>
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-xs font-semibold">요일 선택</Label>
+                                <Label className="text-xs font-semibold">요일 선택 (공통코드)</Label>
                                 <Select value={formDayOfWeek} onValueChange={(val) => setFormDayOfWeek(val as DayOfWeek)}>
                                     <SelectTrigger className="h-9 text-sm">
-                                        <SelectValue />
+                                        <SelectValue placeholder="요일 선택" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {DAYS_OF_WEEK.map((d) => (
+                                        {daysList.map((d) => (
                                             <SelectItem key={d.key} value={d.key}>
                                                 {d.label}
                                             </SelectItem>

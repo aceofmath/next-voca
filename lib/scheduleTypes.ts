@@ -1,4 +1,6 @@
-export type DayOfWeek = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun";
+import { fetchCommonCodes } from "@/lib/codeUtils";
+
+export type DayOfWeek = string;
 
 export interface ScheduleItem {
     id: string;
@@ -14,15 +16,28 @@ export interface ScheduleItem {
     createdAt?: string;
 }
 
-export const DAYS_OF_WEEK: { key: DayOfWeek; label: string; short: string }[] = [
-    { key: "mon", label: "월요일", short: "월" },
-    { key: "tue", label: "화요일", short: "화" },
-    { key: "wed", label: "수요일", short: "수" },
-    { key: "thu", label: "목요일", short: "목" },
-    { key: "fri", label: "금요일", short: "금" },
-    { key: "sat", label: "토요일", short: "토" },
-    { key: "sun", label: "일요일", short: "일" },
-];
+// Fetch dynamic days of week from Supabase code table (DAY category)
+export const fetchDaysOfWeek = async (): Promise<{ key: DayOfWeek; label: string; short: string }[]> => {
+    try {
+        const dayCodes = await fetchCommonCodes("DAY");
+        if (dayCodes && dayCodes.length > 0) {
+            return dayCodes
+                .filter((c) => c.isUse)
+                .sort((a, b) => a.sortOrder - b.sortOrder)
+                .map((c) => ({
+                    key: c.codeValue,
+                    label: c.codeName,
+                    short: c.codeName.replace("요일", ""),
+                }));
+        }
+    } catch (err) {
+        console.warn("Failed to fetch days of week from code table:", err);
+    }
+    return [];
+};
+
+// Fallback constant for initial render
+export const DAYS_OF_WEEK: { key: DayOfWeek; label: string; short: string }[] = [];
 
 export const COLOR_PALETTE = [
     { label: "블루", value: "#3b82f6", bg: "bg-blue-500", text: "text-blue-50", border: "border-blue-600" },

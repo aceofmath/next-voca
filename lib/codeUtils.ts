@@ -17,6 +17,15 @@ export const INITIAL_CODE_SAMPLES: CommonCode[] = [
     { id: "c-grade-3", category: "GRADE", codeValue: "H2", codeName: "고2", sortOrder: 3, isUse: true, description: "고등부 2학년" },
     { id: "c-grade-4", category: "GRADE", codeValue: "H3", codeName: "고3", sortOrder: 4, isUse: true, description: "고등부 3학년" },
     { id: "c-grade-5", category: "GRADE", codeValue: "N", codeName: "N수/재수", sortOrder: 5, isUse: true, description: "수능 전문반" },
+
+    // DAY
+    { id: "c-day-1", category: "DAY", codeValue: "mon", codeName: "월요일", sortOrder: 1, isUse: true, description: "월요일" },
+    { id: "c-day-2", category: "DAY", codeValue: "tue", codeName: "화요일", sortOrder: 2, isUse: true, description: "화요일" },
+    { id: "c-day-3", category: "DAY", codeValue: "wed", codeName: "수요일", sortOrder: 3, isUse: true, description: "수요일" },
+    { id: "c-day-4", category: "DAY", codeValue: "thu", codeName: "목요일", sortOrder: 4, isUse: true, description: "목요일" },
+    { id: "c-day-5", category: "DAY", codeValue: "fri", codeName: "금요일", sortOrder: 5, isUse: true, description: "금요일" },
+    { id: "c-day-6", category: "DAY", codeValue: "sat", codeName: "토요일", sortOrder: 6, isUse: true, description: "토요일" },
+    { id: "c-day-7", category: "DAY", codeValue: "sun", codeName: "일요일", sortOrder: 7, isUse: true, description: "일요일" },
 ];
 
 // Fetch common codes from Supabase (or LocalStorage fallback)
