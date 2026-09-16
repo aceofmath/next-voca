@@ -54,6 +54,8 @@ import {
     Bell,
     Sparkles,
     MapPin,
+    Clock,
+    Database,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -154,6 +156,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             title: "대시보드 메인",
             url: "/admin",
             icon: LayoutDashboard,
+        },
+        {
+            title: "학원 시간표 관리",
+            url: "/admin/schedule",
+            icon: Clock,
+        },
+        {
+            title: "공통코드 관리",
+            url: "/admin/code",
+            icon: Database,
         },
         {
             title: "회원 등급 관리",

@@ -78,7 +78,7 @@ export default function AdminMemberPage() {
                 toast.error("등급 변경에 실패했습니다.");
                 console.error(error);
             } else {
-                const gradeLabel = newGrade === "A" ? "관리자(A)" : newGrade === "S" ? "학생(S)" : "일반회원(미지정)";
+                const gradeLabel = newGrade === "A" ? "관리자(A)" : newGrade === "T" ? "선생님(T)" : newGrade === "S" ? "학생(S)" : "일반회원(미지정)";
                 toast.success(`등급이 '${gradeLabel}'(으)로 변경되었습니다.`);
                 setProfiles((prev) =>
                     prev.map((p) => (p.user_id === targetUserId ? { ...p, grade: newGrade } : p))
@@ -102,8 +102,9 @@ export default function AdminMemberPage() {
     });
 
     const adminCount = profiles.filter((p) => p.grade === "A").length;
+    const teacherCount = profiles.filter((p) => p.grade === "T").length;
     const studentCount = profiles.filter((p) => p.grade === "S").length;
-    const generalCount = profiles.filter((p) => !p.grade || (p.grade !== "A" && p.grade !== "S")).length;
+    const generalCount = profiles.filter((p) => !p.grade || (p.grade !== "A" && p.grade !== "S" && p.grade !== "T")).length;
 
     return (
         <div className="space-y-6">
@@ -112,7 +113,7 @@ export default function AdminMemberPage() {
                 <div>
                     <h1 className="text-2xl md:text-3xl font-bold tracking-tight">회원 등급 관리</h1>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                        전체 회원 목록을 조회하고 `profile` 테이블의 `grade` 컬럼(A: 관리자, S: 학생, null: 일반회원) 권한을 관리합니다.
+                        전체 회원 목록을 조회하고 `profile` 테이블의 `grade` 컬럼(A: 관리자, T: 선생님, S: 학생, null: 일반회원) 권한을 관리합니다.
                     </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -134,27 +135,29 @@ export default function AdminMemberPage() {
                 <Card className="shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                            총 등록 회원
-                        </CardTitle>
-                        <Users className="w-4 h-4 text-zinc-400" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-extrabold">{profiles.length}명</div>
-                        <p className="text-xs text-zinc-500 mt-1">전체 회원 수</p>
-                    </CardContent>
-                </Card>
-                <Card className="shadow-sm">
-                    <CardHeader className="flex flex-row items-center justify-between pb-2">
-                        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                            관리자 (A)
+                            관리자 (A) / 총 회원
                         </CardTitle>
                         <UserCheck className="w-4 h-4 text-emerald-500" />
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400">
-                            {adminCount}명
+                            {adminCount}명 <span className="text-xs text-zinc-400 font-normal">/ 전체 {profiles.length}명</span>
                         </div>
-                        <p className="text-xs text-zinc-500 mt-1">관리자 권한 계정</p>
+                        <p className="text-xs text-zinc-500 mt-1">시스템 관리 권한</p>
+                    </CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                            선생님 (T)
+                        </CardTitle>
+                        <Users className="w-4 h-4 text-purple-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-extrabold text-purple-600 dark:text-purple-400">
+                            {teacherCount}명
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-1">강사 및 강좌 담당 계정</p>
                     </CardContent>
                 </Card>
                 <Card className="shadow-sm">
@@ -194,7 +197,7 @@ export default function AdminMemberPage() {
                         <div>
                             <CardTitle className="text-lg font-bold">회원 권한 설정</CardTitle>
                             <CardDescription className="mt-1 text-xs md:text-sm">
-                                회원별 등급을 선택하여 관리자(A), 학생(S), 일반회원(null) 권한을 부여합니다.
+                                회원별 등급을 선택하여 관리자(A), 선생님(T), 학생(S), 일반회원(null) 권한을 부여합니다.
                             </CardDescription>
                         </div>
                         <div className="relative w-full sm:w-64">
@@ -255,6 +258,10 @@ export default function AdminMemberPage() {
                                                         <Badge className="bg-emerald-600 hover:bg-emerald-700">
                                                             관리자 (A)
                                                         </Badge>
+                                                    ) : p.grade === "T" ? (
+                                                        <Badge className="bg-purple-600 hover:bg-purple-700">
+                                                            선생님 (T)
+                                                        </Badge>
                                                     ) : p.grade === "S" ? (
                                                         <Badge className="bg-blue-600 hover:bg-blue-700">
                                                             학생 (S)
@@ -276,6 +283,7 @@ export default function AdminMemberPage() {
                                                             </SelectTrigger>
                                                             <SelectContent>
                                                                 <SelectItem value="A">관리자 (A)</SelectItem>
+                                                                <SelectItem value="T">선생님 (T)</SelectItem>
                                                                 <SelectItem value="S">학생 (S)</SelectItem>
                                                                 <SelectItem value="NONE">일반회원 (null)</SelectItem>
                                                             </SelectContent>

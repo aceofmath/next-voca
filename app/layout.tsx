@@ -10,6 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle"; // Import the new Theme
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthStatus } from "@/components/auth-status";
+import { AdminRedirect } from "@/components/admin-redirect";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
@@ -36,6 +37,7 @@ export default function RootLayout({
     return (
         <html lang="ko" className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, inter.variable)} suppressHydrationWarning>
             <body className="min-h-full flex flex-col bg-white dark:bg-black font-sans" suppressHydrationWarning>
+                <AdminRedirect />
                 {/* 헤더: CI, 메뉴, 로그인 버튼 */}
                 <header className="flex items-center h-16 px-4 md:px-8 border-b border-zinc-200 dark:border-zinc-800">
                     {/* 왼쪽: CI (Logo) */}
