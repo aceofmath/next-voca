@@ -15,7 +15,7 @@ export const fetchScheduleItems = async (): Promise<ScheduleItem[]> => {
             const mappedItems: ScheduleItem[] = data.map((item: any) => ({
                 id: item.id,
                 title: item.title,
-                instructor: item.instructor || "미지정",
+                instructor_id: item.instructor_id || "",
                 room: item.room || "강의실 미지정",
                 targetGrade: item.target_grade || item.targetGrade || "전체",
                 dayOfWeek: item.day_of_week || item.dayOfWeek || "mon",
@@ -66,10 +66,10 @@ export const saveScheduleItem = async (item: ScheduleItem): Promise<ScheduleItem
 
     // 1. Try updating Supabase
     try {
-        await supabase.from("schedules").upsert({
+        const { error } = await supabase.from("schedules").upsert({
             id: item.id,
             title: item.title,
-            instructor: item.instructor,
+            instructor_id: item.instructor_id,
             room: item.room,
             target_grade: item.targetGrade,
             day_of_week: item.dayOfWeek,
@@ -78,6 +78,11 @@ export const saveScheduleItem = async (item: ScheduleItem): Promise<ScheduleItem
             color: item.color,
             description: item.description,
         });
+
+        if (error) {
+            console.error("Supabase upsert error:", error);
+            throw error;
+        }
     } catch (err) {
         console.warn("Supabase save error, persisting to LocalStorage only:", err);
     }

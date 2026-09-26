@@ -1,34 +1,16 @@
 import { supabase } from "@/lib/supabaseClient";
-import { CommonCode, DEFAULT_CATEGORY_MAP } from "@/lib/codeTypes";
+import { CommonCode } from "@/lib/codeTypes";
 
 const LOCAL_STORAGE_KEY = "jokim_academy_common_codes_v1";
 
-export const INITIAL_CODE_SAMPLES: CommonCode[] = [
-    // ROOM
-    { id: "c-room-1", category: "ROOM", codeValue: "101", codeName: "101호", sortOrder: 1, isUse: true, description: "소형 강의실 (정원 15명)" },
-    { id: "c-room-2", category: "ROOM", codeValue: "102", codeName: "102호", sortOrder: 2, isUse: true, description: "소형 강의실 (정원 15명)" },
-    { id: "c-room-3", category: "ROOM", codeValue: "201", codeName: "201호", sortOrder: 3, isUse: true, description: "중형 강의실 (정원 25명)" },
-    { id: "c-room-4", category: "ROOM", codeValue: "301", codeName: "301호", sortOrder: 4, isUse: true, description: "중형 강의실 (정원 25명)" },
-    { id: "c-room-5", category: "ROOM", codeValue: "MAIN", codeName: "대강의실", sortOrder: 5, isUse: true, description: "대형 특강 전용 (정원 50명)" },
+// UUID 형식이 맞는지 검증 함수
+const isValidUUID = (str?: string): boolean => {
+    if (!str) return false;
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(str);
+};
 
-    // GRADE
-    { id: "c-grade-1", category: "GRADE", codeValue: "M3", codeName: "중3", sortOrder: 1, isUse: true, description: "중등부 3학년" },
-    { id: "c-grade-2", category: "GRADE", codeValue: "H1", codeName: "고1", sortOrder: 2, isUse: true, description: "고등부 1학년" },
-    { id: "c-grade-3", category: "GRADE", codeValue: "H2", codeName: "고2", sortOrder: 3, isUse: true, description: "고등부 2학년" },
-    { id: "c-grade-4", category: "GRADE", codeValue: "H3", codeName: "고3", sortOrder: 4, isUse: true, description: "고등부 3학년" },
-    { id: "c-grade-5", category: "GRADE", codeValue: "N", codeName: "N수/재수", sortOrder: 5, isUse: true, description: "수능 전문반" },
-
-    // DAY
-    { id: "c-day-1", category: "DAY", codeValue: "mon", codeName: "월요일", sortOrder: 1, isUse: true, description: "월요일" },
-    { id: "c-day-2", category: "DAY", codeValue: "tue", codeName: "화요일", sortOrder: 2, isUse: true, description: "화요일" },
-    { id: "c-day-3", category: "DAY", codeValue: "wed", codeName: "수요일", sortOrder: 3, isUse: true, description: "수요일" },
-    { id: "c-day-4", category: "DAY", codeValue: "thu", codeName: "목요일", sortOrder: 4, isUse: true, description: "목요일" },
-    { id: "c-day-5", category: "DAY", codeValue: "fri", codeName: "금요일", sortOrder: 5, isUse: true, description: "금요일" },
-    { id: "c-day-6", category: "DAY", codeValue: "sat", codeName: "토요일", sortOrder: 6, isUse: true, description: "토요일" },
-    { id: "c-day-7", category: "DAY", codeValue: "sun", codeName: "일요일", sortOrder: 7, isUse: true, description: "일요일" },
-];
-
-// Fetch common codes from Supabase (or LocalStorage fallback)
+// Fetch common codes directly from Supabase `code` table (or LocalStorage fallback)
 export const fetchCommonCodes = async (categoryFilter?: string): Promise<CommonCode[]> => {
     try {
         let query = supabase.from("code").select("*").order("sort_order", { ascending: true });
@@ -37,13 +19,14 @@ export const fetchCommonCodes = async (categoryFilter?: string): Promise<CommonC
         }
 
         const { data, error } = await query;
-        if (!error && data && data.length > 0) {
-            const mapped = data.map((item: any) => ({
+        if (!error && data) {
+            const mapped: CommonCode[] = data.map((item: any) => ({
                 id: item.id,
                 category: item.category,
                 codeValue: item.code_value || item.codeValue,
                 codeName: item.code_name || item.codeName,
-                sortOrder: item.sort_order ?? item.sortOrder ?? 1,
+                supCategory: item.sup_category !== undefined ? item.sup_category : null,
+                sortOrder: item.sort_order ?? item.sortOrder ?? 0,
                 isUse: item.is_use ?? item.isUse ?? true,
                 description: item.description || "",
                 createdAt: item.created_at || item.createdAt,
@@ -58,7 +41,7 @@ export const fetchCommonCodes = async (categoryFilter?: string): Promise<CommonC
         console.warn("Supabase code fetch error, falling back to LocalStorage:", err);
     }
 
-    // LocalStorage Fallback
+    // LocalStorage Fallback (DB 연결 실패 시)
     if (typeof window !== "undefined") {
         const localData = localStorage.getItem(LOCAL_STORAGE_KEY);
         if (localData) {
@@ -72,65 +55,57 @@ export const fetchCommonCodes = async (categoryFilter?: string): Promise<CommonC
                 console.error("Failed to parse local code data:", e);
             }
         }
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_CODE_SAMPLES));
     }
 
-    if (categoryFilter && categoryFilter !== "ALL") {
-        return INITIAL_CODE_SAMPLES.filter((c) => c.category === categoryFilter);
-    }
-    return INITIAL_CODE_SAMPLES;
+    return [];
 };
 
-// Save Common Code (Create / Update)
+// Save Common Code to Supabase `code` table (Create / Update)
 export const saveCommonCode = async (codeItem: CommonCode): Promise<CommonCode[]> => {
-    const currentList = await fetchCommonCodes("ALL");
-    const existingIndex = currentList.findIndex((c) => c.id === codeItem.id);
-
-    let updatedList: CommonCode[] = [];
-    if (existingIndex >= 0) {
-        updatedList = [...currentList];
-        updatedList[existingIndex] = codeItem;
-    } else {
-        updatedList = [...currentList, codeItem];
-    }
-
-    // 1. Supabase update
     try {
-        await supabase.from("code").upsert({
-            id: codeItem.id,
+        const payload: any = {
             category: codeItem.category,
             code_value: codeItem.codeValue,
             code_name: codeItem.codeName,
+            sup_category: codeItem.supCategory !== undefined && codeItem.supCategory !== null ? codeItem.supCategory : null,
             sort_order: codeItem.sortOrder,
             is_use: codeItem.isUse,
             description: codeItem.description,
-        });
+        };
+
+        // UUID 검증: 올바른 UUID 형식인 경우에만 id 포함 (신규 생성이면 id 생략하여 Supabase UUID 자동 생성)
+        if (codeItem.id && isValidUUID(codeItem.id)) {
+            payload.id = codeItem.id;
+        }
+
+        const { error } = await supabase.from("code").upsert(payload);
+
+        if (error) {
+            console.error("Supabase code upsert error:", error);
+            throw error;
+        }
     } catch (err) {
-        console.warn("Supabase code save error, persisting in LocalStorage only:", err);
+        console.warn("Supabase code save error:", err);
+        throw err;
     }
 
-    // 2. LocalStorage save
-    if (typeof window !== "undefined") {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
-    }
-
-    return updatedList;
+    // 최신 DB 목록 재조회
+    return fetchCommonCodes("ALL");
 };
 
-// Delete Common Code
+// Delete Common Code from Supabase `code` table
 export const deleteCommonCode = async (id: string): Promise<CommonCode[]> => {
-    const currentList = await fetchCommonCodes("ALL");
-    const updatedList = currentList.filter((c) => c.id !== id);
-
     try {
-        await supabase.from("code").delete().eq("id", id);
+        const { error } = await supabase.from("code").delete().eq("id", id);
+        if (error) {
+            console.error("Supabase code delete error:", error);
+            throw error;
+        }
     } catch (err) {
-        console.warn("Supabase code delete error, updating LocalStorage only:", err);
+        console.warn("Supabase code delete error:", err);
+        throw err;
     }
 
-    if (typeof window !== "undefined") {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedList));
-    }
-
-    return updatedList;
+    // 최신 DB 목록 재조회
+    return fetchCommonCodes("ALL");
 };

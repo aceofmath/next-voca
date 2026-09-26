@@ -5,7 +5,7 @@ export type DayOfWeek = string;
 export interface ScheduleItem {
     id: string;
     title: string;
-    instructor: string;
+    instructor_id: string; // profile.user_id 참조
     room: string;
     targetGrade: string;
     dayOfWeek: DayOfWeek;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
     ScheduleItem,
     DayOfWeek,
@@ -15,9 +15,18 @@ import {
     saveScheduleItem,
     deleteScheduleItem,
 } from "@/lib/scheduleUtils";
+import {
+    fetchAllStudentProfiles,
+    fetchEnrolledStudentIds,
+    fetchAllScheduleStudentsMap,
+    syncScheduleStudents,
+    StudentProfile,
+    ScheduleStudentMap,
+} from "@/lib/scheduleStudentUtils";
 import { fetchCommonCodes } from "@/lib/codeUtils";
 import { CommonCode } from "@/lib/codeTypes";
 import { supabase } from "@/lib/supabaseClient";
+import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,6 +34,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
     Dialog,
     DialogContent,
@@ -33,6 +43,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from "@/components/ui/tabs";
 import {
     Select,
     SelectContent,
@@ -54,6 +70,9 @@ import {
     GraduationCap,
     AlertCircle,
     Check,
+    Users,
+    Search,
+    Loader2,
 } from "lucide-react";
 
 interface TeacherUser {
@@ -80,6 +99,7 @@ export default function AdminSchedulePage() {
     // Dialog state
     const [isDialogOpen, setIsDialogOpen] = useState<boolean>(false);
     const [editingItem, setEditingItem] = useState<ScheduleItem | null>(null);
+    const [activeTab, setActiveTab] = useState<string>("info");
 
     // Form inputs (stores user_id for instructor, code_value for room & targetGrade)
     const [formTitle, setFormTitle] = useState<string>("");
@@ -93,17 +113,27 @@ export default function AdminSchedulePage() {
     const [formDescription, setFormDescription] = useState<string>("");
     const [formError, setFormError] = useState<string | null>(null);
 
+    // 수강생 관리 상태
+    const [allStudents, setAllStudents] = useState<StudentProfile[]>([]);
+    const [enrolledStudentMap, setEnrolledStudentMap] = useState<ScheduleStudentMap>({});
+    const [enrolledIds, setEnrolledIds] = useState<Set<string>>(new Set());
+    const [studentSearchQuery, setStudentSearchQuery] = useState<string>("");
+    const [loadingStudents, setLoadingStudents] = useState<boolean>(false);
+    const [savingStudents, setSavingStudents] = useState<boolean>(false);
+
     const timeSlots = useMemo(() => generateTimeSlots(), []);
 
     const loadData = async () => {
         setLoading(true);
         try {
-            const [scheduleData, roomCodes, gradeCodes, dayCodes, teacherRes] = await Promise.all([
+            const [scheduleData, roomCodes, gradeCodes, dayCodes, teacherRes, studentsRes, studentMapRes] = await Promise.all([
                 fetchScheduleItems(),
                 fetchCommonCodes("ROOM"),
                 fetchCommonCodes("GRADE"),
                 fetchCommonCodes("DAY"),
                 supabase.from("profile").select("user_id, name, grade").eq("grade", "T").order("name"),
+                fetchAllStudentProfiles(),
+                fetchAllScheduleStudentsMap(),
             ]);
 
             setItems(scheduleData);
@@ -116,8 +146,10 @@ export default function AdminSchedulePage() {
                 name: p.name || "미지정 강사",
             }));
             setDbTeachers(teachersList);
+            setAllStudents(studentsRes);
+            setEnrolledStudentMap(studentMapRes);
         } catch (err) {
-            console.error("Failed to load schedule items, common codes & teachers:", err);
+            console.error("Failed to load schedule items, common codes, teachers & students:", err);
         } finally {
             setLoading(false);
         }
@@ -164,12 +196,20 @@ export default function AdminSchedulePage() {
         return map;
     }, [dbGrades]);
 
-    // Unique options for top filter dropdowns
+    const studentMap = useMemo(() => {
+        const map: Record<string, StudentProfile> = {};
+        allStudents.forEach((s) => {
+            map[s.user_id] = s;
+        });
+        return map;
+    }, [allStudents]);
+
+    // 강사 필터 드롭다운 옵션 목록 생성
     const instructorFilterOptions = useMemo(() => {
         const set = new Set<string>();
         dbTeachers.forEach((t) => set.add(t.user_id));
         items.forEach((i) => {
-            if (i.instructor) set.add(i.instructor);
+            if (i.instructor_id) set.add(i.instructor_id);
         });
         return Array.from(set);
     }, [items, dbTeachers]);
@@ -192,15 +232,27 @@ export default function AdminSchedulePage() {
         return Array.from(set);
     }, [items, dbGrades]);
 
-    // Filtered items for display
+    // 필터 조건에 맞는 시간표 아이템 필터링
     const filteredItems = useMemo(() => {
         return items.filter((item) => {
-            if (filterInstructor !== "all" && item.instructor !== filterInstructor) return false;
+            if (filterInstructor !== "all" && item.instructor_id !== filterInstructor) return false;
             if (filterRoom !== "all" && item.room !== filterRoom) return false;
             if (filterGrade !== "all" && item.targetGrade !== filterGrade) return false;
             return true;
         });
     }, [items, filterInstructor, filterRoom, filterGrade]);
+
+    // 학생 검색 필터링
+    const filteredStudents = useMemo(() => {
+        if (!studentSearchQuery.trim()) return allStudents;
+        const q = studentSearchQuery.trim().toLowerCase();
+        return allStudents.filter((s) => {
+            const nameMatch = s.name.toLowerCase().includes(q);
+            const gradeName = s.grade ? (gradeMap[s.grade] || s.grade) : "";
+            const gradeMatch = gradeName.toLowerCase().includes(q);
+            return nameMatch || gradeMatch;
+        });
+    }, [allStudents, studentSearchQuery, gradeMap]);
 
     // Open Modal for New Schedule
     const handleOpenCreate = (day: DayOfWeek = "mon", startTime: string = "09:00") => {
@@ -218,34 +270,78 @@ export default function AdminSchedulePage() {
         setFormColor(COLOR_PALETTE[0].value);
         setFormDescription("");
         setFormError(null);
+        setActiveTab("info");
+        setEnrolledIds(new Set());
+        setStudentSearchQuery("");
         setIsDialogOpen(true);
     };
 
     // Open Modal for Edit
-    const handleOpenEdit = (item: ScheduleItem, e: React.MouseEvent) => {
+    const handleOpenEdit = async (item: ScheduleItem, e: React.MouseEvent) => {
         e.stopPropagation();
         setEditingItem(item);
         setFormTitle(item.title);
-        setFormInstructor(item.instructor);
-        setFormRoom(item.room);
-        setFormTargetGrade(item.targetGrade);
-        setFormDayOfWeek(item.dayOfWeek);
-        setFormStartTime(item.startTime);
-        setFormEndTime(item.endTime);
+
+        setFormInstructor(item.instructor_id || dbTeachers[0]?.user_id || "");
+        setFormRoom(item.room || dbRooms[0]?.codeValue || "");
+        setFormTargetGrade(item.targetGrade || dbGrades[0]?.codeValue || "");
+        setFormDayOfWeek(item.dayOfWeek || "mon");
+        setFormStartTime(item.startTime || "09:00");
+        setFormEndTime(item.endTime || "10:00");
         setFormColor(item.color || "#3b82f6");
         setFormDescription(item.description || "");
         setFormError(null);
+        setActiveTab("info");
+        setStudentSearchQuery("");
         setIsDialogOpen(true);
+
+        // 해당 시간표 수강생 로드
+        setLoadingStudents(true);
+        try {
+            const ids = await fetchEnrolledStudentIds(item.id);
+            setEnrolledIds(new Set(ids));
+        } catch (err) {
+            console.error("Failed to load enrolled students:", err);
+        } finally {
+            setLoadingStudents(false);
+        }
     };
 
-    // Save item
+    // 학생 선택 toggle
+    const handleToggleStudent = (userId: string) => {
+        setEnrolledIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(userId)) {
+                next.delete(userId);
+            } else {
+                next.add(userId);
+            }
+            return next;
+        });
+    };
+
+    // 전체 학생 선택/해제
+    const handleSelectAllStudents = () => {
+        if (enrolledIds.size === filteredStudents.length && filteredStudents.length > 0) {
+            setEnrolledIds(new Set());
+        } else {
+            const newSet = new Set(enrolledIds);
+            filteredStudents.forEach((s) => newSet.add(s.user_id));
+            setEnrolledIds(newSet);
+        }
+    };
+
+    // Save item & sync enrolled students
     const handleSave = async () => {
+        setFormError(null);
         if (!formTitle.trim()) {
             setFormError("수업명을 입력해 주세요.");
+            setActiveTab("info");
             return;
         }
         if (!formInstructor) {
             setFormError("담당 강사를 선택해 주세요.");
+            setActiveTab("info");
             return;
         }
 
@@ -254,15 +350,18 @@ export default function AdminSchedulePage() {
 
         if (endMin <= startMin) {
             setFormError("종료 시간은 시작 시간보다 이후여야 합니다.");
+            setActiveTab("info");
             return;
         }
 
+        const scheduleId = editingItem ? editingItem.id : `sched-${Date.now()}`;
+
         const newItem: ScheduleItem = {
-            id: editingItem ? editingItem.id : `sched-${Date.now()}`,
+            id: scheduleId,
             title: formTitle.trim(),
-            instructor: formInstructor, // user_id
-            room: formRoom,             // code_value
-            targetGrade: formTargetGrade, // code_value
+            instructor_id: formInstructor,
+            room: formRoom,
+            targetGrade: formTargetGrade,
             dayOfWeek: formDayOfWeek,
             startTime: formStartTime,
             endTime: formEndTime,
@@ -271,13 +370,31 @@ export default function AdminSchedulePage() {
             createdAt: editingItem?.createdAt || new Date().toISOString(),
         };
 
+        setSavingStudents(true);
         try {
+            // 1. 시간표 정보 저장
             const updated = await saveScheduleItem(newItem);
             setItems(updated);
+
+            // 2. 수강생 정보 동기화 저장
+            const studentIdList = Array.from(enrolledIds);
+            await syncScheduleStudents(scheduleId, studentIdList);
+
+            // 3. 로컬 수강생 맵 상태 갱신
+            setEnrolledStudentMap((prev) => ({
+                ...prev,
+                [scheduleId]: studentIdList,
+            }));
+
             setIsDialogOpen(false);
-        } catch (err) {
+            toast.success(editingItem ? "수업 정보 및 수강생이 수정되었습니다." : "새 수업 및 수강생이 등록되었습니다.");
+        } catch (err: any) {
             console.error("Failed to save schedule:", err);
-            setFormError("시간표 저장에 실패했습니다.");
+            const errMsg = err?.message || "시간표 및 수강생 저장 중 오류가 발생했습니다.";
+            setFormError(errMsg);
+            toast.error(errMsg);
+        } finally {
+            setSavingStudents(false);
         }
     };
 
@@ -289,10 +406,18 @@ export default function AdminSchedulePage() {
         try {
             const updated = await deleteScheduleItem(editingItem.id);
             setItems(updated);
+            // 수강생 정보도 삭제 동기화
+            await syncScheduleStudents(editingItem.id, []);
+            setEnrolledStudentMap((prev) => {
+                const copy = { ...prev };
+                delete copy[editingItem.id];
+                return copy;
+            });
             setIsDialogOpen(false);
+            toast.success("수업이 삭제되었습니다.");
         } catch (err) {
             console.error("Failed to delete schedule:", err);
-            alert("삭제 처리 중 오류가 발생했습니다.");
+            toast.error("삭제 처리 중 오류가 발생했습니다.");
         }
     };
 
@@ -311,7 +436,7 @@ export default function AdminSchedulePage() {
                         학원 주간 시간표 관리
                     </h1>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                        월요일부터 일요일까지 오전 09:00 ~ 24:00 (30분 단위) 수업 일정 및 강좌를 관리합니다.
+                        월요일부터 일요일까지 오전 09:00 ~ 24:00 (30분 단위) 수업 일정 및 수강 학생을 관리합니다.
                     </p>
                 </div>
 
@@ -498,14 +623,23 @@ export default function AdminSchedulePage() {
                                                 const topPx = ((startMin - START_HOUR_MINUTES) / 30) * SLOT_HEIGHT;
                                                 const heightPx = Math.max(((endMin - startMin) / 30) * SLOT_HEIGHT - 2, SLOT_HEIGHT - 2);
 
-                                                const displayInstructor = teacherMap[item.instructor] || item.instructor || "강사 미지정";
+                                                const displayInstructor = teacherMap[item.instructor_id] || "강사 미지정";
                                                 const displayRoom = roomMap[item.room] || item.room || "강의실 미지정";
                                                 const displayGrade = gradeMap[item.targetGrade] || item.targetGrade || "전체";
+
+                                                // 등록된 수강생 정보 계산
+                                                const enrolledStudentIds = enrolledStudentMap[item.id] || [];
+                                                const studentCount = enrolledStudentIds.length;
+                                                const studentNames = enrolledStudentIds
+                                                    .map((sId) => studentMap[sId]?.name || "학생")
+                                                    .join(", ");
+                                                const tooltipTitle = `${item.title}\n강사: ${displayInstructor} | 강의실: ${displayRoom}\n수강생(${studentCount}명): ${studentNames || "없음"}`;
 
                                                 return (
                                                     <div
                                                         key={item.id}
                                                         onClick={(e) => handleOpenEdit(item, e)}
+                                                        title={tooltipTitle}
                                                         className="absolute left-1 right-1 rounded-md p-2 shadow-sm border text-white pointer-events-auto cursor-pointer transition-all hover:scale-[1.02] hover:shadow-md hover:z-30 overflow-hidden flex flex-col justify-between"
                                                         style={{
                                                             top: `${topPx + 1}px`,
@@ -536,10 +670,14 @@ export default function AdminSchedulePage() {
                                                             </div>
                                                         </div>
 
-                                                        {heightPx >= 60 && (
-                                                            <div className="text-[10px] opacity-80 mt-1 pt-1 border-t border-white/20 flex items-center justify-between">
-                                                                <span>{item.startTime} ~ {item.endTime}</span>
-                                                                <Edit3 className="w-3 h-3 opacity-70" />
+                                                        {/* 수강생 인원 표시 뱃지 */}
+                                                        {heightPx >= 50 && (
+                                                            <div className="text-[10px] font-medium opacity-90 mt-1 flex items-center justify-between pt-1 border-t border-white/20">
+                                                                <span className="flex items-center gap-1 bg-black/20 px-1.5 py-0.5 rounded text-[10px]">
+                                                                    <Users className="w-3 h-3" />
+                                                                    {studentCount}명 수강
+                                                                </span>
+                                                                <span className="opacity-80">{item.startTime} ~ {item.endTime}</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -554,185 +692,278 @@ export default function AdminSchedulePage() {
                 </div>
             </Card>
 
-            {/* Create / Edit Dialog */}
+            {/* Create / Edit Dialog with Tabs */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="sm:max-w-[540px]">
+                <DialogContent className="sm:max-w-[580px]">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2 text-xl font-bold">
                             <CalendarIcon className="w-5 h-5 text-blue-600" />
-                            {editingItem ? "수업 정보 수정" : "새 수업 등록"}
+                            {editingItem ? "수업 정보 및 수강생 수정" : "새 수업 등록"}
                         </DialogTitle>
                         <DialogDescription>
-                            시간표에 등록할 수업 정보 및 요일, 시간을 입력해 주세요.
+                            수업 정보와 등록 수강생 목록을 관리할 수 있습니다.
                         </DialogDescription>
                     </DialogHeader>
 
-                    <div className="space-y-4 py-2">
-                        {formError && (
-                            <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 text-red-700 dark:text-red-300 text-xs rounded-md flex items-center gap-2">
-                                <AlertCircle className="w-4 h-4 shrink-0" />
-                                {formError}
-                            </div>
-                        )}
+                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="info" className="flex items-center gap-2 text-xs font-semibold">
+                                <CalendarIcon className="w-3.5 h-3.5" />
+                                수업 정보
+                            </TabsTrigger>
+                            <TabsTrigger value="students" className="flex items-center gap-2 text-xs font-semibold">
+                                <Users className="w-3.5 h-3.5" />
+                                수강생 관리 ({enrolledIds.size}명)
+                            </TabsTrigger>
+                        </TabsList>
 
-                        {/* Title */}
-                        <div className="space-y-1.5">
-                            <Label htmlFor="title" className="text-xs font-semibold">
-                                수업명 <span className="text-red-500">*</span>
-                            </Label>
-                            <Input
-                                id="title"
-                                value={formTitle}
-                                onChange={(e) => setFormTitle(e.target.value)}
-                                placeholder="예: 고1 수학 개념완성반"
-                                className="h-9 text-sm"
-                            />
-                        </div>
+                        {/* TAB 1: 수업 정보 */}
+                        <TabsContent value="info" className="space-y-4 py-2 mt-2">
+                            {formError && (
+                                <div className="p-3 bg-red-50 dark:bg-red-950/40 border border-red-200 text-red-700 dark:text-red-300 text-xs rounded-md flex items-center gap-2">
+                                    <AlertCircle className="w-4 h-4 shrink-0" />
+                                    {formError}
+                                </div>
+                            )}
 
-                        {/* Instructor & Room */}
-                        <div className="grid grid-cols-2 gap-3">
+                            {/* Title */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="instructor" className="text-xs font-semibold">
-                                    담당 강사 선택 <span className="text-red-500">*</span>
+                                <Label htmlFor="title" className="text-xs font-semibold">
+                                    수업명 <span className="text-red-500">*</span>
                                 </Label>
-                                <Select value={formInstructor} onValueChange={setFormInstructor}>
-                                    <SelectTrigger className="h-9 text-sm">
-                                        <SelectValue placeholder="담당 강사 선택" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {dbTeachers.map((t) => (
-                                            <SelectItem key={t.user_id} value={t.user_id}>
-                                                {t.name}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Input
+                                    id="title"
+                                    value={formTitle}
+                                    onChange={(e) => setFormTitle(e.target.value)}
+                                    placeholder="예: 고1 수학 개념완성반"
+                                    className="h-9 text-sm"
+                                />
                             </div>
 
+                            {/* Instructor & Room */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="instructor" className="text-xs font-semibold">
+                                        담당 강사 선택 <span className="text-red-500">*</span>
+                                    </Label>
+                                    <Select value={formInstructor} onValueChange={setFormInstructor}>
+                                        <SelectTrigger className="h-9 text-sm">
+                                            <SelectValue placeholder="담당 강사 선택" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {dbTeachers.map((t) => (
+                                                <SelectItem key={t.user_id} value={t.user_id}>
+                                                    {t.name}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="room" className="text-xs font-semibold">
+                                        강의실
+                                    </Label>
+                                    <Select value={formRoom} onValueChange={setFormRoom}>
+                                        <SelectTrigger className="h-9 text-sm">
+                                            <SelectValue placeholder="강의실 선택" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {dbRooms.map((r) => (
+                                                <SelectItem key={r.id} value={r.codeValue}>
+                                                    {r.codeName} {r.description ? `(${r.description})` : ""}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Target Grade & Day */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label htmlFor="targetGrade" className="text-xs font-semibold">
+                                        수강 대상
+                                    </Label>
+                                    <Select value={formTargetGrade} onValueChange={setFormTargetGrade}>
+                                        <SelectTrigger className="h-9 text-sm">
+                                            <SelectValue placeholder="수강 대상 선택" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {dbGrades.map((g) => (
+                                                <SelectItem key={g.id} value={g.codeValue}>
+                                                    {g.codeName} {g.description ? `(${g.description})` : ""}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">요일 선택</Label>
+                                    <Select value={formDayOfWeek} onValueChange={(val) => setFormDayOfWeek(val as DayOfWeek)}>
+                                        <SelectTrigger className="h-9 text-sm">
+                                            <SelectValue placeholder="요일 선택" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {daysList.map((d) => (
+                                                <SelectItem key={d.key} value={d.key}>
+                                                    {d.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Start Time & End Time */}
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">시작 시간 (30분 단위)</Label>
+                                    <Select value={formStartTime} onValueChange={setFormStartTime}>
+                                        <SelectTrigger className="h-9 text-sm">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-52">
+                                            {timeSlots.map((time) => (
+                                                <SelectItem key={`start-${time}`} value={time}>
+                                                    {time}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div className="space-y-1.5">
+                                    <Label className="text-xs font-semibold">종료 시간 (30분 단위)</Label>
+                                    <Select value={formEndTime} onValueChange={setFormEndTime}>
+                                        <SelectTrigger className="h-9 text-sm">
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent className="max-h-52">
+                                            {timeSlots.map((time) => (
+                                                <SelectItem key={`end-${time}`} value={time}>
+                                                    {time}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            </div>
+
+                            {/* Color Selection */}
                             <div className="space-y-1.5">
-                                <Label htmlFor="room" className="text-xs font-semibold">
-                                    강의실 (code_value)
+                                <Label className="text-xs font-semibold">시간표 대표 색상</Label>
+                                <div className="flex flex-wrap items-center gap-2 pt-1">
+                                    {COLOR_PALETTE.map((c) => (
+                                        <button
+                                            key={c.value}
+                                            type="button"
+                                            onClick={() => setFormColor(c.value)}
+                                            className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${c.bg} ${
+                                                formColor === c.value ? "ring-2 ring-offset-2 ring-zinc-900 dark:ring-white scale-110" : "opacity-80 hover:opacity-100"
+                                            }`}
+                                            title={c.label}
+                                        >
+                                            {formColor === c.value && <Check className="w-4 h-4 text-white" />}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Description */}
+                            <div className="space-y-1.5">
+                                <Label htmlFor="description" className="text-xs font-semibold">
+                                    커리큘럼 및 수업 메모
                                 </Label>
-                                <Select value={formRoom} onValueChange={setFormRoom}>
-                                    <SelectTrigger className="h-9 text-sm">
-                                        <SelectValue placeholder="강의실 선택" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {dbRooms.map((r) => (
-                                            <SelectItem key={r.id} value={r.codeValue}>
-                                                {r.codeName} {r.description ? `(${r.description})` : ""}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <Textarea
+                                    id="description"
+                                    value={formDescription}
+                                    onChange={(e) => setFormDescription(e.target.value)}
+                                    placeholder="수업 상세 내용 또는 전달 사항을 작성하세요."
+                                    className="text-sm min-h-[60px] resize-none"
+                                />
                             </div>
-                        </div>
+                        </TabsContent>
 
-                        {/* Target Grade & Day */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <Label htmlFor="targetGrade" className="text-xs font-semibold">
-                                    수강 대상 (code_value)
-                                </Label>
-                                <Select value={formTargetGrade} onValueChange={setFormTargetGrade}>
-                                    <SelectTrigger className="h-9 text-sm">
-                                        <SelectValue placeholder="수강 대상 선택" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {dbGrades.map((g) => (
-                                            <SelectItem key={g.id} value={g.codeValue}>
-                                                {g.codeName} {g.description ? `(${g.description})` : ""}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-semibold">요일 선택 (공통코드)</Label>
-                                <Select value={formDayOfWeek} onValueChange={(val) => setFormDayOfWeek(val as DayOfWeek)}>
-                                    <SelectTrigger className="h-9 text-sm">
-                                        <SelectValue placeholder="요일 선택" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {daysList.map((d) => (
-                                            <SelectItem key={d.key} value={d.key}>
-                                                {d.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-
-                        {/* Start Time & End Time */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-semibold">시작 시간 (30분 단위)</Label>
-                                <Select value={formStartTime} onValueChange={setFormStartTime}>
-                                    <SelectTrigger className="h-9 text-sm">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-52">
-                                        {timeSlots.map((time) => (
-                                            <SelectItem key={`start-${time}`} value={time}>
-                                                {time}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                        {/* TAB 2: 수강생 관리 */}
+                        <TabsContent value="students" className="space-y-3 py-2 mt-2">
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="relative flex-1">
+                                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-zinc-400" />
+                                    <Input
+                                        placeholder="학생 이름 또는 학년 검색..."
+                                        value={studentSearchQuery}
+                                        onChange={(e) => setStudentSearchQuery(e.target.value)}
+                                        className="pl-9 h-9 text-xs"
+                                    />
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleSelectAllStudents}
+                                    className="h-9 text-xs shrink-0"
+                                >
+                                    {enrolledIds.size === filteredStudents.length && filteredStudents.length > 0
+                                        ? "전체 해제"
+                                        : "전체 선택"}
+                                </Button>
                             </div>
 
-                            <div className="space-y-1.5">
-                                <Label className="text-xs font-semibold">종료 시간 (30분 단위)</Label>
-                                <Select value={formEndTime} onValueChange={setFormEndTime}>
-                                    <SelectTrigger className="h-9 text-sm">
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent className="max-h-52">
-                                        {timeSlots.map((time) => (
-                                            <SelectItem key={`end-${time}`} value={time}>
-                                                {time}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                            <div className="text-xs text-zinc-500 flex items-center justify-between px-1">
+                                <span>선택된 수강생: <strong className="text-blue-600 font-semibold">{enrolledIds.size}명</strong> / 총 {allStudents.length}명</span>
+                                {loadingStudents && (
+                                    <span className="flex items-center gap-1 text-zinc-400">
+                                        <Loader2 className="w-3 h-3 animate-spin" /> 수강생 목록 로딩 중...
+                                    </span>
+                                )}
                             </div>
-                        </div>
 
-                        {/* Color Selection */}
-                        <div className="space-y-1.5">
-                            <Label className="text-xs font-semibold">시간표 대표 색상</Label>
-                            <div className="flex flex-wrap items-center gap-2 pt-1">
-                                {COLOR_PALETTE.map((c) => (
-                                    <button
-                                        key={c.value}
-                                        type="button"
-                                        onClick={() => setFormColor(c.value)}
-                                        className={`w-7 h-7 rounded-full flex items-center justify-center transition-all ${c.bg} ${
-                                            formColor === c.value ? "ring-2 ring-offset-2 ring-zinc-900 dark:ring-white scale-110" : "opacity-80 hover:opacity-100"
-                                        }`}
-                                        title={c.label}
-                                    >
-                                        {formColor === c.value && <Check className="w-4 h-4 text-white" />}
-                                    </button>
-                                ))}
+                            <div className="border border-zinc-200 dark:border-zinc-800 rounded-md max-h-[280px] overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-800">
+                                {filteredStudents.length === 0 ? (
+                                    <div className="p-8 text-center text-xs text-zinc-400">
+                                        {studentSearchQuery ? "검색 조건에 맞는 학생이 없습니다." : "등록된 학생 프로필이 없습니다."}
+                                    </div>
+                                ) : (
+                                    filteredStudents.map((st) => {
+                                        const isChecked = enrolledIds.has(st.user_id);
+                                        const displayGrade = st.grade ? (gradeMap[st.grade] || st.grade) : "학년 미지정";
+                                        return (
+                                            <div
+                                                key={st.user_id}
+                                                onClick={() => handleToggleStudent(st.user_id)}
+                                                className={`flex items-center justify-between p-2.5 text-xs cursor-pointer transition-colors ${
+                                                    isChecked
+                                                        ? "bg-blue-50/60 dark:bg-blue-950/30"
+                                                        : "hover:bg-zinc-50 dark:hover:bg-zinc-900"
+                                                }`}
+                                            >
+                                                <div className="flex items-center gap-3">
+                                                    <Checkbox
+                                                        checked={isChecked}
+                                                        onCheckedChange={() => handleToggleStudent(st.user_id)}
+                                                    />
+                                                    <div>
+                                                        <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                                                            {st.name}
+                                                        </span>
+                                                        {st.Email && (
+                                                            <span className="text-[11px] text-zinc-400 ml-2">
+                                                                ({st.Email})
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 font-normal">
+                                                    {displayGrade}
+                                                </Badge>
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
-                        </div>
-
-                        {/* Description */}
-                        <div className="space-y-1.5">
-                            <Label htmlFor="description" className="text-xs font-semibold">
-                                커리큘럼 및 수업 메모
-                            </Label>
-                            <Textarea
-                                id="description"
-                                value={formDescription}
-                                onChange={(e) => setFormDescription(e.target.value)}
-                                placeholder="수업 상세 내용 또는 전달 사항을 작성하세요."
-                                className="text-sm min-h-[70px] resize-none"
-                            />
-                        </div>
-                    </div>
+                        </TabsContent>
+                    </Tabs>
 
                     <DialogFooter className="flex items-center justify-between sm:justify-between gap-2 pt-2 border-t">
                         {editingItem ? (
@@ -742,6 +973,7 @@ export default function AdminSchedulePage() {
                                 size="sm"
                                 onClick={handleDelete}
                                 className="gap-1 text-xs"
+                                disabled={savingStudents}
                             >
                                 <Trash2 className="w-3.5 h-3.5" />
                                 삭제
@@ -756,6 +988,7 @@ export default function AdminSchedulePage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setIsDialogOpen(false)}
+                                disabled={savingStudents}
                             >
                                 취소
                             </Button>
@@ -763,8 +996,10 @@ export default function AdminSchedulePage() {
                                 type="button"
                                 size="sm"
                                 onClick={handleSave}
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                                disabled={savingStudents}
+                                className="bg-blue-600 hover:bg-blue-700 text-white gap-1"
                             >
+                                {savingStudents && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                                 저장하기
                             </Button>
                         </div>
