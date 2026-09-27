@@ -137,9 +137,9 @@ export default function AdminSchedulePage() {
             ]);
 
             setItems(scheduleData);
-            setDbRooms(roomCodes.filter((c) => c.isUse));
-            setDbGrades(gradeCodes.filter((c) => c.isUse));
-            setDbDays(dayCodes.filter((c) => c.isUse));
+            setDbRooms(roomCodes.filter((c) => c.isUse && c.supCategory !== null && c.supCategory !== undefined));
+            setDbGrades(gradeCodes.filter((c) => c.isUse && c.supCategory !== null && c.supCategory !== undefined));
+            setDbDays(dayCodes.filter((c) => c.isUse && c.supCategory !== null && c.supCategory !== undefined));
 
             const teachersList: TeacherUser[] = (teacherRes.data || []).map((p: any) => ({
                 user_id: p.user_id,
