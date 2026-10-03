@@ -177,7 +177,7 @@ export default function AdminMemberPage() {
                 <Card className="shadow-sm">
                     <CardHeader className="flex flex-row items-center justify-between pb-2">
                         <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
-                            미지정 / 일반회원
+                            일반회원
                         </CardTitle>
                         <UserX className="w-4 h-4 text-zinc-400" />
                     </CardHeader>

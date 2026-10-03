@@ -27,6 +27,11 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
     title: "JOKIM 수학까페학원",
     description: "JOKIM 수학까페학원만의 특별함을 경험하세요!",
+    icons: {
+        icon: "/icon.svg",
+        shortcut: "/icon.svg",
+        apple: "/icon.svg",
+    },
 };
 
 export default function RootLayout({
@@ -45,7 +50,7 @@ export default function RootLayout({
                         <Link href="/" className="flex items-center">
                             {" "}
                             {/* Added flex items-center for better alignment */}
-                            <Image className="dark:invert" src="/next.svg" alt="Next.js logo" width={100} height={20} priority />
+                            <Image className="dark:invert" src="/next.svg" alt="JokiMath logo" width={126} height={30} priority />
                         </Link>
                     </div>
 

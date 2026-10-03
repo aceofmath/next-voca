@@ -36,8 +36,9 @@ export default function AdminDashboardPage() {
     }, []);
 
     const adminCount = profiles.filter((p) => p.grade === "A").length;
+    const teacherCount = profiles.filter((p) => p.grade === "T").length;
     const studentCount = profiles.filter((p) => p.grade === "S").length;
-    const generalCount = profiles.filter((p) => !p.grade || (p.grade !== "A" && p.grade !== "S")).length;
+    const generalCount = profiles.filter((p) => !p.grade || (p.grade !== "A" && p.grade !== "S" && p.grade !== "T")).length;
 
     return (
         <div className="space-y-6">
@@ -81,6 +82,20 @@ export default function AdminDashboardPage() {
                             {adminCount}명
                         </div>
                         <p className="text-xs text-zinc-500 mt-1">관리자 권한 계정</p>
+                    </CardContent>
+                </Card>
+                <Card className="shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                            선생님 (grade: T)
+                        </CardTitle>
+                        <GraduationCap className="w-4 h-4 text-purple-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-extrabold text-purple-600 dark:text-purple-400">
+                            {teacherCount}명
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-1">강사 및 강좌 담당 계정</p>
                     </CardContent>
                 </Card>
                 <Card className="shadow-sm">
