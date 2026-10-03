@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { MyPageDropdown } from "@/components/mypage-dropdown";
 import { MobileMenu } from "@/components/mobile-menu"; // Import the new MobileMenu component
 import { ThemeToggle } from "@/components/theme-toggle"; // Import the new ThemeToggle component
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -65,12 +66,7 @@ export default function RootLayout({
                         <Link href="/notice" className="hover:text-black dark:hover:text-white transition-colors">
                             공지사항
                         </Link>
-                        <Link href="/todos" className="hover:text-black dark:hover:text-white transition-colors">
-                            할일
-                        </Link>
-                        <Link href="/attendance" className="hover:text-black dark:hover:text-white transition-colors">
-                            출석체크
-                        </Link>
+                        <MyPageDropdown />
                     </nav>
 
                     {/* 오른쪽: 로그인 버튼 */}
