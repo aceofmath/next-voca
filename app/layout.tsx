@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { MyPageDropdown } from "@/components/mypage-dropdown";
+import { AdminNavLink } from "@/components/admin-nav-link";
 import { MobileMenu } from "@/components/mobile-menu"; // Import the new MobileMenu component
 import { ThemeToggle } from "@/components/theme-toggle"; // Import the new ThemeToggle component
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -67,6 +68,7 @@ export default function RootLayout({
                             공지사항
                         </Link>
                         <MyPageDropdown />
+                        <AdminNavLink />
                     </nav>
 
                     {/* 오른쪽: 로그인 버튼 */}

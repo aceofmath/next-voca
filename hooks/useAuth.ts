@@ -8,6 +8,8 @@ export function useAuth() {
     const {
         user,
         loading,
+        isAdmin,
+        userGrade,
         profileMap,
         setUser,
         fetchUser,
@@ -41,6 +43,8 @@ export function useAuth() {
     return {
         user,
         loading,
+        isAdmin,
+        userGrade,
         profileMap,
         loginWithGoogle,
         logout,

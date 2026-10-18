@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { CheckSquare, CalendarCheck, ArrowRight, User, Loader2, ListTodo, Calendar as CalendarIcon } from "lucide-react";
+import { CheckSquare, CalendarCheck, ArrowRight, User, Loader2, ListTodo, Calendar as CalendarIcon, Clock } from "lucide-react";
 import { useTodos } from "@/hooks/useTodos";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -79,10 +79,10 @@ export default function MyPageMainPage() {
                 </div>
             </div>
 
-            {/* 메인 요약 그리드 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* 메인 요약 그리드 (3컬럼) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* 할일 요약 카드 */}
-                <Card className="border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+                <Card className="border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-lg font-bold flex items-center gap-2">
                             <CheckSquare className="w-5 h-5 text-blue-500" />
@@ -90,23 +90,23 @@ export default function MyPageMainPage() {
                         </CardTitle>
                         <Button variant="ghost" size="sm" asChild className="gap-1 text-xs text-zinc-500 hover:text-black dark:hover:text-white">
                             <Link href="/mypage/todos">
-                                관리하기 <ArrowRight className="w-3.5 h-3.5" />
+                                관리 <ArrowRight className="w-3.5 h-3.5" />
                             </Link>
                         </Button>
                     </CardHeader>
-                    <CardContent className="pt-4">
-                        <div className="grid grid-cols-3 gap-3 text-center mb-4">
-                            <div className="p-3 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
-                                <span className="text-xs text-muted-foreground block mb-1">전체</span>
-                                <span className="text-xl font-bold text-zinc-900 dark:text-zinc-100">{totalCount}</span>
+                    <CardContent className="pt-4 flex-1 flex flex-col justify-between">
+                        <div className="grid grid-cols-3 gap-2 text-center mb-4">
+                            <div className="p-2.5 bg-zinc-50 dark:bg-zinc-900 rounded-lg">
+                                <span className="text-[11px] text-muted-foreground block mb-1">전체</span>
+                                <span className="text-lg font-bold text-zinc-900 dark:text-zinc-100">{totalCount}</span>
                             </div>
-                            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
-                                <span className="text-xs text-amber-600 dark:text-amber-400 block mb-1">진행중</span>
-                                <span className="text-xl font-bold text-amber-600 dark:text-amber-400">{inProgressCount}</span>
+                            <div className="p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-lg">
+                                <span className="text-[11px] text-amber-600 dark:text-amber-400 block mb-1">진행중</span>
+                                <span className="text-lg font-bold text-amber-600 dark:text-amber-400">{inProgressCount}</span>
                             </div>
-                            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
-                                <span className="text-xs text-emerald-600 dark:text-emerald-400 block mb-1">완료</span>
-                                <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">{completedCount}</span>
+                            <div className="p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg">
+                                <span className="text-[11px] text-emerald-600 dark:text-emerald-400 block mb-1">완료</span>
+                                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{completedCount}</span>
                             </div>
                         </div>
                         <Button asChild className="w-full justify-center gap-2" variant="outline">
@@ -119,7 +119,7 @@ export default function MyPageMainPage() {
                 </Card>
 
                 {/* 출석체크 요약 카드 */}
-                <Card className="border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all">
+                <Card className="border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-lg font-bold flex items-center gap-2">
                             <CalendarCheck className="w-5 h-5 text-emerald-500" />
@@ -127,11 +127,11 @@ export default function MyPageMainPage() {
                         </CardTitle>
                         <Button variant="ghost" size="sm" asChild className="gap-1 text-xs text-zinc-500 hover:text-black dark:hover:text-white">
                             <Link href="/mypage/attendance">
-                                출석하기 <ArrowRight className="w-3.5 h-3.5" />
+                                출석 <ArrowRight className="w-3.5 h-3.5" />
                             </Link>
                         </Button>
                     </CardHeader>
-                    <CardContent className="pt-4">
+                    <CardContent className="pt-4 flex-1 flex flex-col justify-between">
                         <div className="p-4 bg-zinc-50 dark:bg-zinc-900 rounded-lg text-center mb-4">
                             <span className="text-xs text-muted-foreground block mb-1">이번 달 출석 횟수</span>
                             {loadingAttendance ? (
@@ -146,6 +146,35 @@ export default function MyPageMainPage() {
                             <Link href="/mypage/attendance">
                                 <CalendarIcon className="w-4 h-4" />
                                 출석체크 하러가기
+                            </Link>
+                        </Button>
+                    </CardContent>
+                </Card>
+
+                {/* 나의시간표 요약 카드 */}
+                <Card className="border-zinc-200 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all flex flex-col justify-between">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-lg font-bold flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-purple-500" />
+                            나의시간표
+                        </CardTitle>
+                        <Button variant="ghost" size="sm" asChild className="gap-1 text-xs text-zinc-500 hover:text-black dark:hover:text-white">
+                            <Link href="/mypage/schedule">
+                                보기 <ArrowRight className="w-3.5 h-3.5" />
+                            </Link>
+                        </Button>
+                    </CardHeader>
+                    <CardContent className="pt-4 flex-1 flex flex-col justify-between">
+                        <div className="p-4 bg-purple-50/50 dark:bg-purple-950/20 rounded-lg text-center mb-4">
+                            <span className="text-xs text-purple-700 dark:text-purple-300 block mb-1">주간 수업 시간표</span>
+                            <span className="text-sm font-semibold text-zinc-800 dark:text-zinc-200">
+                                맞춤형 강의 및 시간대 확인
+                            </span>
+                        </div>
+                        <Button asChild className="w-full justify-center gap-2" variant="outline">
+                            <Link href="/mypage/schedule">
+                                <Clock className="w-4 h-4" />
+                                나의시간표 보러가기
                             </Link>
                         </Button>
                     </CardContent>

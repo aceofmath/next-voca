@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, CheckSquare, CalendarCheck } from "lucide-react";
+import { LayoutDashboard, CheckSquare, CalendarCheck, Clock } from "lucide-react";
 
 export default function MyPageLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -27,6 +27,12 @@ export default function MyPageLayout({ children }: { children: React.ReactNode }
             icon: CalendarCheck,
             exact: false,
         },
+        {
+            name: "나의시간표",
+            href: "/mypage/schedule",
+            icon: Clock,
+            exact: false,
+        },
     ];
 
     return (
@@ -37,7 +43,7 @@ export default function MyPageLayout({ children }: { children: React.ReactNode }
                     마이페이지
                 </h1>
                 <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-                    개인 할 일 목록 및 출석체크 현황을 관리하세요.
+                    개인 할 일 목록, 출석체크 현황 및 나의시간표를 확인하세요.
                 </p>
             </div>
 

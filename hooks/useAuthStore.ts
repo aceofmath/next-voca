@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabaseClient";
 interface AuthState {
     user: SupabaseUser | null;
     loading: boolean;
+    isAdmin: boolean;
+    userGrade: string | null;
     profileMap: Record<string, string>;
     setUser: (user: SupabaseUser | null) => void;
     setProfileMap: (map: Record<string, string>) => void;
@@ -20,6 +22,8 @@ let initialized = false;
 export const useAuthStore = create<AuthState>((set, get) => ({
     user: null,
     loading: true,
+    isAdmin: false,
+    userGrade: null,
     profileMap: {},
     setUser: (user) => set({ user }),
     setProfileMap: (map) => set({ profileMap: map }),
@@ -27,6 +31,24 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     fetchUser: async () => {
         if (initialized) return;
         initialized = true;
+
+        const updateGrade = async (u: SupabaseUser | null) => {
+            if (!u) {
+                set({ isAdmin: false, userGrade: null });
+                return;
+            }
+            try {
+                const { data } = await supabase
+                    .from("profile")
+                    .select("grade")
+                    .eq("user_id", u.id)
+                    .maybeSingle();
+                set({ isAdmin: data?.grade === "A", userGrade: data?.grade || null });
+            } catch (err) {
+                console.error("Failed to fetch user grade:", err);
+                set({ isAdmin: false, userGrade: null });
+            }
+        };
 
         try {
             set({ loading: true });
@@ -37,6 +59,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ user });
             if (user) {
                 await get().syncProfile(user);
+                await updateGrade(user);
+            } else {
+                set({ isAdmin: false, userGrade: null });
             }
         } catch (error) {
             console.error("Failed to fetch auth user:", error);
@@ -49,6 +74,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             set({ user: currentUser });
             if (currentUser) {
                 await get().syncProfile(currentUser);
+                await updateGrade(currentUser);
+            } else {
+                set({ isAdmin: false, userGrade: null });
             }
         });
     },
@@ -114,6 +142,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     logout: async () => {
         await supabase.auth.signOut();
-        set({ user: null });
+        set({ user: null, isAdmin: false, userGrade: null });
     },
 }));

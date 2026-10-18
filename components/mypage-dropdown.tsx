@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, LayoutDashboard, CheckSquare, CalendarCheck } from "lucide-react";
+import { ChevronDown, LayoutDashboard, CheckSquare, CalendarCheck, Clock } from "lucide-react";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -39,6 +39,12 @@ export function MyPageDropdown() {
                     <Link href="/mypage/attendance" className="flex items-center gap-2 w-full py-2">
                         <CalendarCheck className="w-4 h-4 text-emerald-500" />
                         <span>출석체크</span>
+                    </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href="/mypage/schedule" className="flex items-center gap-2 w-full py-2">
+                        <Clock className="w-4 h-4 text-purple-500" />
+                        <span>나의시간표</span>
                     </Link>
                 </DropdownMenuItem>
             </DropdownMenuContent>

@@ -2,12 +2,15 @@
 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu, LayoutDashboard, CheckSquare, CalendarCheck } from "lucide-react";
+import { Menu, LayoutDashboard, CheckSquare, CalendarCheck, Clock } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 import { AuthStatus } from "./auth-status";
+import { useAuth } from "@/hooks/useAuth";
 
 export function MobileMenu() {
+    const { isAdmin } = useAuth();
+
     return (
         <Sheet>
             <SheetTrigger asChild>
@@ -37,6 +40,13 @@ export function MobileMenu() {
                                 공지사항
                             </Link>
                         </SheetClose>
+                        {isAdmin && (
+                            <SheetClose asChild>
+                                <Link href="/admin" className="text-lg font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors mx-2 py-1">
+                                    관리자
+                                </Link>
+                            </SheetClose>
+                        )}
 
                         {/* 마이페이지 그룹 */}
                         <div className="flex flex-col gap-2 mt-2 pt-2 border-t border-zinc-100 dark:border-zinc-800">
@@ -60,6 +70,12 @@ export function MobileMenu() {
                                     <Link href="/mypage/attendance" className="flex items-center gap-2.5 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-900">
                                         <CalendarCheck className="w-4 h-4 text-emerald-500" />
                                         <span>출석체크</span>
+                                    </Link>
+                                </SheetClose>
+                                <SheetClose asChild>
+                                    <Link href="/mypage/schedule" className="flex items-center gap-2.5 text-base font-medium text-zinc-600 dark:text-zinc-400 hover:text-black dark:hover:text-white transition-colors p-2 rounded-md hover:bg-zinc-100 dark:hover:bg-zinc-900">
+                                        <Clock className="w-4 h-4 text-purple-500" />
+                                        <span>나의시간표</span>
                                     </Link>
                                 </SheetClose>
                             </div>
