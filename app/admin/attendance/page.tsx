@@ -103,7 +103,7 @@ export default function AdminAttendancePage() {
     const { user } = useAuth();
 
     // 뷰 모드: 일(day), 주(week), 월(month)
-    const [viewMode, setViewMode] = useState<ViewMode>("month");
+    const [viewMode, setViewMode] = useState<ViewMode>("day");
 
     // 기준 날짜 (기본: 오늘)
     const [currentDate, setCurrentDate] = useState<Date>(new Date());
@@ -395,7 +395,7 @@ export default function AdminAttendancePage() {
                         </div>
                         <div>
                             <div className="text-[11px] text-muted-foreground">당일 대상 수강생</div>
-                            <div className="text-base font-bold">{totalTargetCount}명</div>
+                            <div className="text-base font-bold text-center">{totalTargetCount}명</div>
                         </div>
                     </Card>
 
@@ -405,7 +405,7 @@ export default function AdminAttendancePage() {
                         </div>
                         <div>
                             <div className="text-[11px] text-muted-foreground">등원 완료</div>
-                            <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">
+                            <div className="text-base font-bold text-center text-emerald-600 dark:text-emerald-400">
                                 {attendedCount}명
                             </div>
                         </div>
@@ -417,7 +417,7 @@ export default function AdminAttendancePage() {
                         </div>
                         <div>
                             <div className="text-[11px] text-muted-foreground">하원 완료</div>
-                            <div className="text-base font-bold text-purple-600 dark:text-purple-400">{leftCount}명</div>
+                            <div className="text-base font-bold text-center text-purple-600 dark:text-purple-400">{leftCount}명</div>
                         </div>
                     </Card>
 
@@ -427,7 +427,7 @@ export default function AdminAttendancePage() {
                         </div>
                         <div>
                             <div className="text-[11px] text-muted-foreground">미등원 / 결석</div>
-                            <div className="text-base font-bold text-rose-600 dark:text-rose-400">{absentCount}명</div>
+                            <div className="text-base font-bold text-center text-rose-600 dark:text-rose-400">{absentCount}명</div>
                         </div>
                     </Card>
                 </div>
@@ -742,8 +742,8 @@ export default function AdminAttendancePage() {
                                     <div
                                         key={`day-${dayNum}`}
                                         className={`min-h-[90px] md:min-h-[130px] border rounded-lg p-1.5 md:p-2 flex flex-col justify-start bg-white dark:bg-zinc-900 transition-colors ${dateString === todayStr
-                                                ? "ring-2 ring-blue-500 border-blue-500 shadow-sm"
-                                                : "border-zinc-200 dark:border-zinc-800"
+                                            ? "ring-2 ring-blue-500 border-blue-500 shadow-sm"
+                                            : "border-zinc-200 dark:border-zinc-800"
                                             }`}
                                     >
                                         {/* Date Header */}
@@ -799,8 +799,8 @@ export default function AdminAttendancePage() {
                                                             key={student.user_id}
                                                             onClick={() => handleOpenAdminEdit(student, dateString, record)}
                                                             className={`flex flex-col p-1 rounded border gap-0.5 cursor-pointer transition-colors ${record
-                                                                    ? "border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-                                                                    : "border-zinc-100 dark:border-zinc-800/40 bg-white dark:bg-zinc-900/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
+                                                                ? "border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800/60 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+                                                                : "border-zinc-100 dark:border-zinc-800/40 bg-white dark:bg-zinc-900/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/40"
                                                                 }`}
                                                             title={`클릭하여 등/하원 일시 수정\n${courses.length > 0 ? `수강 강좌: ${courses.join(", ")}` : "시간표 미배정"}`}
                                                         >
@@ -922,7 +922,7 @@ export default function AdminAttendancePage() {
                     </div>
                     <div>
                         <div className="text-[11px] text-muted-foreground">개설 강좌</div>
-                        <div className="text-base font-bold">{schedules.length}개 강좌</div>
+                        <div className="text-base font-bold text-center">{schedules.length}개 강좌</div>
                     </div>
                 </Card>
 
@@ -932,7 +932,7 @@ export default function AdminAttendancePage() {
                     </div>
                     <div>
                         <div className="text-[11px] text-muted-foreground">시간표 수강생</div>
-                        <div className="text-base font-bold">{allEnrolledStudentIds.size}명 등록</div>
+                        <div className="text-base font-bold text-center">{allEnrolledStudentIds.size}명 등록</div>
                     </div>
                 </Card>
 
@@ -942,7 +942,7 @@ export default function AdminAttendancePage() {
                     </div>
                     <div>
                         <div className="text-[11px] text-muted-foreground">조회 기간 출석 기록</div>
-                        <div className="text-base font-bold">{monthlyAttendances.length}건</div>
+                        <div className="text-base font-bold text-center">{monthlyAttendances.length}건</div>
                     </div>
                 </Card>
 
